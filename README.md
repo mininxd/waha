@@ -1,4 +1,4 @@
-# WAHA
+# mininxd/waha
 
 <p align="center">
   <img src="./logo.png" style='border-radius: 50%' width='150'/>
@@ -6,7 +6,7 @@
 
 **WAHA** - **W**hats**A**pp **H**TTP **A**PI (REST API) that you can install on your own server and run in less than 5 minutes!
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/devlikeapro/waha)](https://hub.docker.com/r/devlikeapro/waha)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mininxd/waha)](https://hub.docker.com/r/mininxd/waha)
 
 - Documentation: [https://waha.devlike.pro/](https://waha.devlike.pro/)
 - Dashboard Example: [https://waha.devlike.pro/dashboard](https://waha.devlike.pro/dashboard)
@@ -50,13 +50,13 @@ Assuming you have installed [Docker](https://docs.docker.com/get-docker/), let's
 
 
 ```bash
-docker pull devlikeapro/waha
+docker pull mininxd/waha
 ```
 
 
 ```bash
-docker login -u devlikeapro -p {KEY}
-docker pull devlikeapro/waha-plus
+docker login -u mininxd -p {KEY}
+docker pull mininxd/waha-plus
 docker logout
 ```
 
@@ -67,7 +67,7 @@ Read more about how to get `PASSWORD` for [**➕ WAHA Plus**](https://waha.devli
 Run WhatsApp HTTP API:
 
 ```bash
-docker run -it --rm -p 3000:3000/tcp --name waha devlikeapro/waha
+docker run -it --rm -p 3000:3000/tcp --name waha mininxd/waha
 
 # It prints logs and the last line must be
 # WhatsApp HTTP API is running on: http://[::1]:3000
@@ -98,7 +98,7 @@ The example payload:
 ```
 
 
-By using the request with `name` values you can start multiple session (WhatsApp accounts) inside the single docker container in Plus
+By using the request with `name` values you can start multiple session (WhatsApp accounts) inside the single docker container
 
 
 ### 4. Get and scan QR
