@@ -78,6 +78,7 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
+  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -666,12 +667,17 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     return true;
   }
 
-  protected setProfilePicture(file: BinaryFile | RemoteFile): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+  protected async setProfilePicture(
+    file: BinaryFile | RemoteFile,
+  ): Promise<boolean> {
+    const media = await this.getMediaFromFile(file);
+    // @ts-ignore
+    return await this.whatsapp.setProfilePicture(media);
   }
 
-  protected deleteProfilePicture(): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+  protected async deleteProfilePicture(): Promise<boolean> {
+    // @ts-ignore
+    return await this.whatsapp.deleteProfilePicture();
   }
 
   /**
@@ -764,16 +770,60 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  sendImage(request: MessageImageRequest) {
-    throw new AvailableInPlusVersion();
+  async sendImage(request: MessageImageRequest) {
+    const { file } = request;
+    const media = await this.getMediaFromFile(file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
   }
 
-  sendFile(request: MessageFileRequest) {
-    throw new AvailableInPlusVersion();
+  async sendFile(request: MessageFileRequest) {
+    const { file } = request;
+    const media = await this.getMediaFromFile(file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
   }
 
-  sendVoice(request: MessageVoiceRequest) {
-    throw new AvailableInPlusVersion();
+  async sendVoice(request: MessageVoiceRequest) {
+    const { file } = request;
+    const media = await this.getMediaFromFile(file);
+    const options = this.getMessageOptions(request);
+    options.sendAudioAsVoice = true;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
+  }
+
+  async sendVideo(request: MessageVideoRequest) {
+    const { file } = request;
+    const media = await this.getMediaFromFile(file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
+  }
+
+  protected async getMediaFromFile(file: BinaryFile | RemoteFile) {
+    if ('url' in file) {
+      return await MessageMedia.fromUrl(file.url);
+    } else {
+      return new MessageMedia(file.mimetype, file.data, file.filename);
+    }
   }
 
   sendButtonsReply(request: MessageButtonReply) {
