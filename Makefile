@@ -1,23 +1,23 @@
 build-all: build-plus build-chrome build-gows build-noweb
 
 build:
-	docker build . -t devlikeapro/waha
+	docker build . -t mininxd/waha
 
 build-plus:
-	docker build . -t devlikeapro/waha-plus
+	docker build . -t mininxd/waha-plus
 
 build-chrome:
-	docker build . -t devlikeapro/waha-plus:chrome --build-arg USE_BROWSER=chrome
+	docker build . -t mininxd/waha-plus:chrome --build-arg USE_BROWSER=chrome
 
 build-noweb:
-	docker build . -t devlikeapro/waha-plus:noweb --build-arg USE_BROWSER=none --build-arg WHATSAPP_DEFAULT_ENGINE=NOWEB
+	docker build . -t mininxd/waha-plus:noweb --build-arg USE_BROWSER=none --build-arg WHATSAPP_DEFAULT_ENGINE=NOWEB
 
 build-gows:
-	docker build . -t devlikeapro/waha-plus:gows --build-arg USE_BROWSER=none --build-arg WHATSAPP_DEFAULT_ENGINE=GOWS
+	docker build . -t mininxd/waha-plus:gows --build-arg USE_BROWSER=none --build-arg WHATSAPP_DEFAULT_ENGINE=GOWS
 
 build-ssh:
 	# check IMAGE provided
-	@[ "${IMAGE}" ]  || ( echo "Add APP: make build-ssh image=devlikeapro/waha"; exit 1 );
+	@[ "${IMAGE}" ]  || ( echo "Add APP: make build-ssh image=mininxd/waha"; exit 1 );
 	eval $(ssh-agent) && \
 	ssh-add ~/.ssh/id_rsa && \
 	docker buildx build --ssh default=${SSH_AUTH_SOCK} . -t ${IMAGE} --build-arg USE_BROWSER=none
@@ -29,7 +29,7 @@ clean: stop
 	sudo rm -rf .sessions
 
 push:
-	docker push devlikeapro/waha
+	docker push mininxd/waha
 
 for-swagger:
 	WHATSAPP_SWAGGER_CONFIG_ADVANCED=true WHATSAPP_SWAGGER_PASSWORD=666 nvm exec yarn start
