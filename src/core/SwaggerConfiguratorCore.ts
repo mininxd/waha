@@ -5,6 +5,7 @@ import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import { BasicAuthFunction } from '@waha/core/auth/basicAuth';
 import { DashboardConfigServiceCore } from '@waha/core/config/DashboardConfigServiceCore';
 import { Logger } from 'nestjs-pino';
+import { apiReference } from '@scalar/nestjs-api-reference';
 
 import { WhatsappConfigService } from '../config.service';
 import { VERSION } from '../version';
@@ -135,9 +136,14 @@ export class SwaggerConfiguratorCore {
       swaggerDocumentOptions,
     );
     document = this.configureWebhooks(document, webhooks);
-    SwaggerModule.setup('', app, document, {
-      customSiteTitle: this.title,
-    });
+
+    app.use(
+      '/',
+      apiReference({
+        title: this.title,
+        content: document,
+      }),
+    );
   }
 
   private configureWebhooks(document: OpenAPIObject, supportedWebhooks) {
