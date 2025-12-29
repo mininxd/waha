@@ -1402,7 +1402,45 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     inviteCode: string,
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
-    throw new AvailableInPlusVersion();
+    const metadata = await this.whatsapp.getChannelByInviteCode(inviteCode);
+    const channelId = metadata.id._serialized;
+    const channel = (await this.whatsapp.getChatById(
+      channelId,
+    )) as unknown as WEBJSChannel;
+
+    const limit = query.limit || 10;
+    // Cast to any because fetchMessages might not be in the types yet
+    const messages = await (channel as any).fetchMessages({ limit: limit });
+
+    const result: ChannelMessage[] = [];
+    for (const msg of messages) {
+      const wamessage = await this.processIncomingMessage(
+        msg,
+        query.downloadMedia,
+      );
+
+      // Try to extract extra info
+      // @ts-ignore
+      const viewCount = msg.rawData?.viewCount || 0;
+      // @ts-ignore
+      const reactionCounts = msg.rawData?.reactions || [];
+      const reactions = {};
+      // reactionCounts might be array of { content: '👍', count: 10 }
+      if (Array.isArray(reactionCounts)) {
+        for (const r of reactionCounts) {
+          if (r.content && r.count) {
+            reactions[r.content] = r.count;
+          }
+        }
+      }
+
+      result.push({
+        message: wamessage,
+        reactions: reactions,
+        viewCount: viewCount,
+      });
+    }
+    return result;
   }
 
   protected ChatToChannel(chat: WEBJSChannel): Channel {
