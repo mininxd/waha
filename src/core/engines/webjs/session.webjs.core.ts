@@ -1403,7 +1403,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
     const metadata = await this.whatsapp.getChannelByInviteCode(inviteCode);
-    const channelId = metadata.id;
+    const channelId = metadata.id._serialized;
     const channel = (await this.whatsapp.getChatById(
       channelId,
     )) as unknown as WEBJSChannel;
