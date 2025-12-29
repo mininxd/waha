@@ -278,6 +278,10 @@ export class WebjsClientCore extends Client {
           return true;
         };
 
+        if (!chatId) {
+          throw new Error('chatId is required in getMessages');
+        }
+
         // @ts-ignore
         const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
         let msgs = chat.msgs.getModelsArray().filter(msgFilter);
