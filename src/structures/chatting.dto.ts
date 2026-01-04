@@ -292,11 +292,10 @@ export class MessageLocationRequest extends ChatRequest {
 @ApiExtraModels(BinaryFile, RemoteFile)
 class FileRequest extends ChatRequest {
   @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(RemoteFile) },
-      { $ref: getSchemaPath(BinaryFile) },
-      { type: 'string', format: 'binary' },
-    ],
+    description:
+      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+    type: 'string',
+    format: 'binary',
   })
   file: BinaryFile | RemoteFile;
 }
@@ -324,11 +323,10 @@ export class MessageFileRequest extends FileRequest {
 @ApiExtraModels(VoiceBinaryFile, VoiceRemoteFile)
 export class MessageVoiceRequest extends ChatRequest {
   @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(VoiceRemoteFile) },
-      { $ref: getSchemaPath(VoiceBinaryFile) },
-      { type: 'string', format: 'binary' },
-    ],
+    description:
+      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+    type: 'string',
+    format: 'binary',
   })
   file: VoiceBinaryFile | VoiceRemoteFile;
 
@@ -342,11 +340,10 @@ export class MessageVoiceRequest extends ChatRequest {
 @ApiExtraModels(VideoRemoteFile, VideoBinaryFile)
 export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(VideoRemoteFile) },
-      { $ref: getSchemaPath(VideoBinaryFile) },
-      { type: 'string', format: 'binary' },
-    ],
+    description:
+      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+    type: 'string',
+    format: 'binary',
   })
   file: VideoRemoteFile | VideoBinaryFile;
 

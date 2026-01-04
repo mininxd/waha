@@ -819,10 +819,12 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   protected async getMediaFromFile(file: BinaryFile | RemoteFile) {
-    if ('url' in file) {
+    if ('url' in file && file.url) {
       return await MessageMedia.fromUrl(file.url);
-    } else {
+    } else if ('data' in file && file.data) {
       return new MessageMedia(file.mimetype, file.data, file.filename);
+    } else {
+      throw new Error('File must have "url" or "data"');
     }
   }
 

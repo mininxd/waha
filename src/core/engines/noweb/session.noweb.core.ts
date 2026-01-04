@@ -869,10 +869,12 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     file: BinaryFile | RemoteFile,
   ): Promise<boolean> {
     let buffer: Buffer;
-    if ('url' in file) {
+    if ('url' in file && file.url) {
       buffer = await this.fetch(file.url);
-    } else {
+    } else if ('data' in file && file.data) {
       buffer = Buffer.from(file.data, 'base64');
+    } else {
+      throw new Error('File must have "url" or "data"');
     }
     const me = this.getSessionMeInfo();
     // @ts-ignore
@@ -1050,10 +1052,13 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   }
 
   protected async getBaileysMedia(file: BinaryFile | RemoteFile) {
-    if ('url' in file) {
+    if ('url' in file && file.url) {
       return { url: file.url };
     }
-    return Buffer.from(file.data, 'base64');
+    if ('data' in file && file.data) {
+      return Buffer.from(file.data, 'base64');
+    }
+    throw new Error('File must have "url" or "data"');
   }
 
   sendLinkCustomPreview(
