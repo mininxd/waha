@@ -11,7 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { WAHAValidationPipe } from '@waha/nestjs/pipes/WAHAValidationPipe';
 import {
   GetChatMessagesFilter,
@@ -88,6 +88,7 @@ export class ChattingController {
 
   @Post('/sendImage')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send an image',
     description:
@@ -114,6 +115,7 @@ export class ChattingController {
 
   @Post('/sendFile')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send a file',
     description:
@@ -140,6 +142,7 @@ export class ChattingController {
 
   @Post('/sendVoice')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send an voice message',
     description:
@@ -162,6 +165,7 @@ export class ChattingController {
 
   @Post('/sendVideo')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send a video',
     description:
