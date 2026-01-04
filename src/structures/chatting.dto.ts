@@ -294,10 +294,23 @@ class FileRequest extends ChatRequest {
   @ApiProperty({
     description:
       'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
-    type: 'string',
-    format: 'binary',
+    oneOf: [
+      { type: 'string', format: 'binary' },
+      { type: 'string' },
+      { $ref: getSchemaPath(RemoteFile) },
+      { $ref: getSchemaPath(BinaryFile) },
+    ],
   })
-  file: BinaryFile | RemoteFile;
+  file: BinaryFile | RemoteFile | string;
+
+  @ApiProperty({
+    description: 'URL of the file',
+    required: false,
+    example: 'https://github.com/mininxd/waha/raw/core/logo.png',
+  })
+  @IsOptional()
+  @IsString()
+  url?: string;
 }
 
 export class MessageImageRequest extends FileRequest {
@@ -325,10 +338,24 @@ export class MessageVoiceRequest extends ChatRequest {
   @ApiProperty({
     description:
       'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
-    type: 'string',
-    format: 'binary',
+    oneOf: [
+      { type: 'string', format: 'binary' },
+      { type: 'string' },
+      { $ref: getSchemaPath(VoiceRemoteFile) },
+      { $ref: getSchemaPath(VoiceBinaryFile) },
+    ],
   })
-  file: VoiceBinaryFile | VoiceRemoteFile;
+  file: VoiceBinaryFile | VoiceRemoteFile | string;
+
+  @ApiProperty({
+    description: 'URL of the file',
+    required: false,
+    example:
+      'https://github.com/devlikeapro/waha/raw/core/examples/dev.likeapro.opus',
+  })
+  @IsOptional()
+  @IsString()
+  url?: string;
 
   @ReplyToProperty()
   reply_to?: string;
@@ -342,10 +369,23 @@ export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
     description:
       'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
-    type: 'string',
-    format: 'binary',
+    oneOf: [
+      { type: 'string', format: 'binary' },
+      { type: 'string' },
+      { $ref: getSchemaPath(VideoRemoteFile) },
+      { $ref: getSchemaPath(VideoBinaryFile) },
+    ],
   })
-  file: VideoRemoteFile | VideoBinaryFile;
+  file: VideoRemoteFile | VideoBinaryFile | string;
+
+  @ApiProperty({
+    description: 'URL of the file',
+    required: false,
+    example: 'https://github.com/devlikeapro/waha/raw/core/examples/video.mp4',
+  })
+  @IsOptional()
+  @IsString()
+  url?: string;
 
   caption?: string = 'Just watch at this!';
 

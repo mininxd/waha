@@ -996,9 +996,22 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return await this.sock.sendMessage(request.chatId, message, options);
   }
 
+  protected getFile(request: {
+    file: BinaryFile | RemoteFile | string;
+    url?: string;
+  }): BinaryFile | RemoteFile | string {
+    if (request.file) {
+      return request.file;
+    }
+    if (request.url) {
+      return request.url;
+    }
+    throw new Error('File or URL is required');
+  }
+
   async sendImage(request: MessageImageRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
-    const { file } = request;
+    const file = this.getFile(request);
     const media = await this.getBaileysMedia(file);
     const options = await this.getMessageOptions(request);
     const message = {
@@ -1011,13 +1024,23 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
 
   async sendFile(request: MessageFileRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
-    const { file } = request;
+    const file = this.getFile(request);
     const media = await this.getBaileysMedia(file);
     const options = await this.getMessageOptions(request);
+    let mimetype;
+    let filename;
+    if (typeof file !== 'string') {
+      if ('mimetype' in file) {
+        mimetype = file.mimetype;
+      }
+      if ('filename' in file) {
+        filename = file.filename;
+      }
+    }
     const message = {
       document: media,
-      mimetype: file.mimetype,
-      fileName: file.filename,
+      mimetype: mimetype,
+      fileName: filename,
       caption: request.caption,
       mentions: request.mentions?.map(toJID),
     };
@@ -1026,13 +1049,17 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
 
   async sendVoice(request: MessageVoiceRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
-    const { file } = request;
+    const file = this.getFile(request);
     const media = await this.getBaileysMedia(file);
     const options = await this.getMessageOptions(request);
+    let mimetype = 'audio/ogg; codecs=opus';
+    if (typeof file !== 'string' && 'mimetype' in file) {
+      mimetype = file.mimetype;
+    }
     const message = {
       audio: media,
       ptt: true,
-      mimetype: 'audio/ogg; codecs=opus',
+      mimetype: mimetype,
     };
     return this.sock.sendMessage(chatId, message, options);
   }
@@ -1051,7 +1078,13 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return this.sock.sendMessage(chatId, message, options);
   }
 
-  protected async getBaileysMedia(file: BinaryFile | RemoteFile) {
+  protected async getBaileysMedia(file: BinaryFile | RemoteFile | string) {
+    if (typeof file === 'string') {
+      if (file.startsWith('http')) {
+        return { url: file };
+      }
+      return Buffer.from(file, 'base64');
+    }
     if ('url' in file && file.url) {
       return { url: file.url };
     }
