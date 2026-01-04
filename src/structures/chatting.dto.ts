@@ -295,6 +295,7 @@ class FileRequest extends ChatRequest {
     oneOf: [
       { $ref: getSchemaPath(RemoteFile) },
       { $ref: getSchemaPath(BinaryFile) },
+      { type: 'string', format: 'binary' },
     ],
   })
   file: BinaryFile | RemoteFile;
@@ -326,6 +327,7 @@ export class MessageVoiceRequest extends ChatRequest {
     oneOf: [
       { $ref: getSchemaPath(VoiceRemoteFile) },
       { $ref: getSchemaPath(VoiceBinaryFile) },
+      { type: 'string', format: 'binary' },
     ],
   })
   file: VoiceBinaryFile | VoiceRemoteFile;
@@ -343,6 +345,7 @@ export class MessageVideoRequest extends ChatRequest {
     oneOf: [
       { $ref: getSchemaPath(VideoRemoteFile) },
       { $ref: getSchemaPath(VideoBinaryFile) },
+      { type: 'string', format: 'binary' },
     ],
   })
   file: VideoRemoteFile | VideoBinaryFile;
