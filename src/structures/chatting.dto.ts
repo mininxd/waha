@@ -293,7 +293,7 @@ export class MessageLocationRequest extends ChatRequest {
 class FileRequest extends ChatRequest {
   @ApiProperty({
     description:
-      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
       { type: 'string', format: 'binary' },
       { type: 'string' },
@@ -337,7 +337,7 @@ export class MessageFileRequest extends FileRequest {
 export class MessageVoiceRequest extends ChatRequest {
   @ApiProperty({
     description:
-      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
       { type: 'string', format: 'binary' },
       { type: 'string' },
@@ -368,7 +368,7 @@ export class MessageVoiceRequest extends ChatRequest {
 export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
     description:
-      'File upload (multipart/form-data) OR JSON object. If using multipart upload, the URL field in the JSON object is ignored.',
+      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
       { type: 'string', format: 'binary' },
       { type: 'string' },
