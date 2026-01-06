@@ -268,7 +268,9 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
 
   protected async buildClient() {
     const clientOptions = this.getClientOptions();
-    const base = process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
+    const base = path.resolve(
+      process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions',
+    );
     clientOptions.authStrategy = new LocalAuth({
       clientId: this.name,
       dataPath: `${base}/webjs/default`,
