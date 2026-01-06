@@ -98,7 +98,7 @@ import {
   WAHASessionStatus,
   WAMessageAck,
 } from '@waha/structures/enums.dto';
-import { BinaryFile, RemoteFile } from '@waha/structures/files.dto';
+import { BinaryFile, RemoteFile, VoiceBinaryFile, VoiceRemoteFile, VideoBinaryFile } from '@waha/structures/files.dto';
 import {
   CreateGroupRequest,
   GroupParticipant,
@@ -820,11 +820,15 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  protected async getMediaFromFile(file: BinaryFile | RemoteFile) {
-    if ('url' in file) {
+  protected async getMediaFromFile(file: BinaryFile | RemoteFile | VoiceBinaryFile | VoiceRemoteFile | VideoBinaryFile | string) {
+    if (typeof file === 'string') {
+      return await MessageMedia.fromUrl(file);
+    } else if ('url' in file && file.url) {
       return await MessageMedia.fromUrl(file.url);
-    } else {
+    } else if ('data' in file) {
       return new MessageMedia(file.mimetype, file.data, file.filename);
+    } else {
+      throw new Error('Invalid file format: missing data or url property');
     }
   }
 
