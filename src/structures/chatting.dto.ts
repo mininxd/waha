@@ -227,7 +227,7 @@ export class LinkPreviewData {
     example: {
       url:
         process.env.WHATSAPP_SWAGGER_JPG_EXAMPLE_URL ||
-        'https://github.com/devlikeapro/waha/raw/core/examples/waha.jpg',
+        'https://github.com/mininxd/waha/raw/core/examples/waha.jpg',
     },
   })
   image?: FileType;
@@ -351,7 +351,7 @@ export class MessageVoiceRequest extends ChatRequest {
     description: 'URL of the file',
     required: false,
     example:
-      'https://github.com/devlikeapro/waha/raw/core/examples/dev.likeapro.opus',
+      'https://github.com/mininxd/waha/raw/core/examples/dev.likeapro.opus',
   })
   @IsOptional()
   @IsString()
@@ -381,7 +381,7 @@ export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
     description: 'URL of the file',
     required: false,
-    example: 'https://github.com/devlikeapro/waha/raw/core/examples/video.mp4',
+    example: 'https://github.com/mininxd/waha/raw/core/examples/video.mp4',
   })
   @IsOptional()
   @IsString()

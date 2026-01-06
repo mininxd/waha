@@ -268,7 +268,9 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
 
   protected async buildClient() {
     const clientOptions = this.getClientOptions();
-    const base = process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
+    const base = path.resolve(
+      process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions',
+    );
     clientOptions.authStrategy = new LocalAuth({
       clientId: this.name,
       dataPath: `${base}/webjs/default`,
@@ -770,21 +772,8 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  protected getFile(request: {
-    file: BinaryFile | RemoteFile | string;
-    url?: string;
-  }): BinaryFile | RemoteFile | string {
-    if (request.file) {
-      return request.file;
-    }
-    if (request.url) {
-      return request.url;
-    }
-    throw new Error('File or URL is required');
-  }
-
   async sendImage(request: MessageImageRequest) {
-    const file = this.getFile(request);
+    const { file } = request;
     const media = await this.getMediaFromFile(file);
     const options = this.getMessageOptions(request);
     options.caption = request.caption;
@@ -796,7 +785,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   async sendFile(request: MessageFileRequest) {
-    const file = this.getFile(request);
+    const { file } = request;
     const media = await this.getMediaFromFile(file);
     const options = this.getMessageOptions(request);
     options.caption = request.caption;
@@ -808,7 +797,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   async sendVoice(request: MessageVoiceRequest) {
-    const file = this.getFile(request);
+    const { file } = request;
     const media = await this.getMediaFromFile(file);
     const options = this.getMessageOptions(request);
     options.sendAudioAsVoice = true;
@@ -820,7 +809,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   async sendVideo(request: MessageVideoRequest) {
-    const file = this.getFile(request);
+    const { file } = request;
     const media = await this.getMediaFromFile(file);
     const options = this.getMessageOptions(request);
     options.caption = request.caption;
@@ -831,19 +820,11 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  protected async getMediaFromFile(file: BinaryFile | RemoteFile | string) {
-    if (typeof file === 'string') {
-      if (file.startsWith('http')) {
-        return await MessageMedia.fromUrl(file);
-      }
-      return new MessageMedia(null, file, null);
-    }
-    if ('url' in file && file.url) {
+  protected async getMediaFromFile(file: BinaryFile | RemoteFile) {
+    if ('url' in file) {
       return await MessageMedia.fromUrl(file.url);
-    } else if ('data' in file && file.data) {
-      return new MessageMedia(file.mimetype, file.data, file.filename);
     } else {
-      throw new Error('File must have "url" or "data"');
+      return new MessageMedia(file.mimetype, file.data, file.filename);
     }
   }
 
