@@ -63,6 +63,7 @@ export class LocalAuth implements AuthStrategy {
     };
 
     this.userDataDir = dirPath;
+    this.logger.info(`Using userDataDir: '${dirPath}'`);
     await this.removeSingletonFiles(dirPath);
   }
 
@@ -90,6 +91,7 @@ export class LocalAuth implements AuthStrategy {
 
   async logout() {
     if (this.userDataDir) {
+      this.logger.info(`Logging out and removing '${this.userDataDir}'...`);
       await this.removePathSilently(this.userDataDir);
     }
   }

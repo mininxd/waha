@@ -10,7 +10,7 @@ const fs = require('fs');
 
 export enum WAHAVersion {
   PLUS = 'PLUS',
-  CORE = 'CORE',
+  CORE = 'PLUS LITE',
 }
 
 export function getWAHAVersion(): WAHAVersion {
@@ -30,7 +30,7 @@ export function getWAHAVersion(): WAHAVersion {
 }
 
 export const VERSION: WAHAEnvironment = {
-  version: '2025.12.2',
+  version: '2026.1.7',
   engine: getEngineName(),
   tier: getWAHAVersion(),
   browser:

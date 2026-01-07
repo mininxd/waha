@@ -5,10 +5,13 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
   UsePipes,
+  UploadedFile,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { WAHAValidationPipe } from '@waha/nestjs/pipes/WAHAValidationPipe';
 import {
   GetChatMessagesFilter,
@@ -43,6 +46,23 @@ import {
   SendSeenRequest,
   WANumberExistResult,
 } from '../structures/chatting.dto';
+import {
+  BinaryFile,
+  VideoBinaryFile,
+  VoiceBinaryFile,
+} from '../structures/files.dto';
+
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
 import { WAMessage } from '../structures/responses.dto';
 import {
   mentionsAll,
@@ -67,12 +87,24 @@ export class ChattingController {
   }
 
   @Post('/sendImage')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send an image',
     description:
       'Either from an URL or base64 data - look at the request schemas for details.',
   })
-  async sendImage(@Body() request: MessageImageRequest) {
+  async sendImage(
+    @Body() request: MessageImageRequest,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (file) {
+      request.file = {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+        data: file.buffer.toString('base64'),
+      } as BinaryFile;
+    }
     const whatsapp = await this.manager.getWorkingSession(request.session);
     if (mentionsAll(request)) {
       validateRequestMentions(request);
@@ -82,12 +114,24 @@ export class ChattingController {
   }
 
   @Post('/sendFile')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send a file',
     description:
       'Either from an URL or base64 data - look at the request schemas for details.',
   })
-  async sendFile(@Body() request: MessageFileRequest) {
+  async sendFile(
+    @Body() request: MessageFileRequest,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (file) {
+      request.file = {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+        data: file.buffer.toString('base64'),
+      } as BinaryFile;
+    }
     const whatsapp = await this.manager.getWorkingSession(request.session);
     if (mentionsAll(request)) {
       validateRequestMentions(request);
@@ -97,23 +141,47 @@ export class ChattingController {
   }
 
   @Post('/sendVoice')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send an voice message',
     description:
       'Either from an URL or base64 data - look at the request schemas for details.',
   })
-  async sendVoice(@Body() request: MessageVoiceRequest) {
+  async sendVoice(
+    @Body() request: MessageVoiceRequest,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (file) {
+      request.file = {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+        data: file.buffer.toString('base64'),
+      } as VoiceBinaryFile;
+    }
     const whatsapp = await this.manager.getWorkingSession(request.session);
     return whatsapp.sendVoice(request);
   }
 
   @Post('/sendVideo')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiOperation({
     summary: 'Send a video',
     description:
       'Either from an URL or base64 data - look at the request schemas for details.',
   })
-  async sendVideo(@Body() request: MessageVideoRequest) {
+  async sendVideo(
+    @Body() request: MessageVideoRequest,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (file) {
+      request.file = {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+        data: file.buffer.toString('base64'),
+      } as VideoBinaryFile;
+    }
     const whatsapp = await this.manager.getWorkingSession(request.session);
     if (mentionsAll(request)) {
       validateRequestMentions(request);
