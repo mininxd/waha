@@ -85,6 +85,7 @@ import {
   MessageReactionRequest,
   MessageReplyRequest,
   MessageTextRequest,
+  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -288,14 +289,12 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
       grpc.credentials.createInsecure(),
     );
 
-    try {
-      await promisify(this.client.StartSession)(request);
-    } catch (err) {
+    promisify(this.client.StartSession)(request).catch((err) => {
       this.logger.error('Failed to start the client');
       this.logger.error(err, err.stack);
       this.status = WAHASessionStatus.FAILED;
       throw err;
-    }
+    });
   }
 
   protected getProxyUrl(config: ProxyConfig): string {
@@ -766,14 +765,14 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
 
   async stop(): Promise<void> {
     this.cleanupPresenceTimeout();
-    if (this.client) {
-      const response = await promisify(this.client.StopSession)(this.session);
-      response.toObject();
-    }
     this.status = WAHASessionStatus.STOPPED;
     this.events?.stop();
     this.stopEvents();
     this.mediaManager.close();
+    if (this.client) {
+      await promisify(this.client.StopSession)(this.session);
+      this.client?.close();
+    }
   }
 
   public async requestCode(phoneNumber: string, method: string, params?: any) {
@@ -1082,16 +1081,75 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
     throw new NotImplementedByEngineError();
   }
 
-  sendImage(request: MessageImageRequest) {
-    throw new AvailableInPlusVersion();
+  protected async getMedia(
+    file: BinaryFile | RemoteFile,
+  ): Promise<{ content: Uint8Array; mimetype: string; filename?: string }> {
+    let content: Buffer;
+    if ('url' in file) {
+      content = await this.fetch(file.url);
+    } else {
+      content = Buffer.from(file.data, 'base64');
+    }
+    return {
+      content: content,
+      mimetype: file.mimetype,
+      filename: file.filename,
+    };
   }
 
-  sendFile(request: MessageFileRequest) {
-    throw new AvailableInPlusVersion();
+  protected async sendMedia(
+    request:
+      | MessageImageRequest
+      | MessageFileRequest
+      | MessageVoiceRequest
+      | MessageVideoRequest,
+    type: messages.MediaType,
+  ) {
+    const jid = toJID(this.ensureSuffix(request.chatId));
+    const { content, mimetype, filename } = await this.getMedia(request.file);
+    const media = new messages.Media({
+      content: content,
+      type: type,
+      mimetype: mimetype,
+      filename: filename,
+    });
+    // @ts-ignore
+    const text = request.caption;
+    const message = new messages.MessageRequest({
+      jid: jid,
+      session: this.session,
+      media: media,
+      text: text,
+      replyTo: getMessageIdFromSerialized(request.reply_to),
+      mentions: request.mentions?.map((mention) => toJID(mention)),
+    });
+    const response = await promisify(this.client.SendMessage)(message);
+    const data = response.toObject();
+    return this.messageResponse(jid, data);
   }
 
-  sendVoice(request: MessageVoiceRequest) {
-    throw new AvailableInPlusVersion();
+  @Activity()
+  async sendImage(request: MessageImageRequest) {
+    return this.sendMedia(request, messages.MediaType.IMAGE);
+  }
+
+  @Activity()
+  async sendFile(request: MessageFileRequest) {
+    return this.sendMedia(request, messages.MediaType.DOCUMENT);
+  }
+
+  @Activity()
+  async sendVoice(request: MessageVoiceRequest) {
+    return this.sendMedia(request, messages.MediaType.AUDIO);
+  }
+
+  @Activity()
+  async sendVideo(request: MessageVideoRequest) {
+    let type = messages.MediaType.VIDEO;
+    if (request.asNote) {
+      type = messages.MediaType.PTV;
+    }
+    return this.sendMedia(request, type);
   }
 
   sendLinkCustomPreview(

@@ -227,7 +227,7 @@ export class LinkPreviewData {
     example: {
       url:
         process.env.WHATSAPP_SWAGGER_JPG_EXAMPLE_URL ||
-        'https://github.com/mininxd/waha/raw/core/examples/waha.jpg',
+        'https://github.com/devlikeapro/waha/raw/core/examples/waha.jpg',
     },
   })
   image?: FileType;
@@ -292,25 +292,12 @@ export class MessageLocationRequest extends ChatRequest {
 @ApiExtraModels(BinaryFile, RemoteFile)
 class FileRequest extends ChatRequest {
   @ApiProperty({
-    description:
-      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
-      { type: 'string', format: 'binary' },
-      { type: 'string' },
       { $ref: getSchemaPath(RemoteFile) },
       { $ref: getSchemaPath(BinaryFile) },
     ],
   })
-  file: BinaryFile | RemoteFile | string;
-
-  @ApiProperty({
-    description: 'URL of the file',
-    required: false,
-    example: 'https://github.com/mininxd/waha/raw/core/logo.png',
-  })
-  @IsOptional()
-  @IsString()
-  url?: string;
+  file: BinaryFile | RemoteFile;
 }
 
 export class MessageImageRequest extends FileRequest {
@@ -336,56 +323,32 @@ export class MessageFileRequest extends FileRequest {
 @ApiExtraModels(VoiceBinaryFile, VoiceRemoteFile)
 export class MessageVoiceRequest extends ChatRequest {
   @ApiProperty({
-    description:
-      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
-      { type: 'string', format: 'binary' },
-      { type: 'string' },
       { $ref: getSchemaPath(VoiceRemoteFile) },
       { $ref: getSchemaPath(VoiceBinaryFile) },
     ],
   })
-  file: VoiceBinaryFile | VoiceRemoteFile | string;
-
-  @ApiProperty({
-    description: 'URL of the file',
-    required: false,
-    example:
-      'https://github.com/mininxd/waha/raw/core/examples/dev.likeapro.opus',
-  })
-  @IsOptional()
-  @IsString()
-  url?: string;
+  file: VoiceBinaryFile | VoiceRemoteFile;
 
   @ReplyToProperty()
   reply_to?: string;
 
   @ConvertApiProperty()
   convert: boolean;
+
+  @ApiHideProperty()
+  mentions?: string[];
 }
 
 @ApiExtraModels(VideoRemoteFile, VideoBinaryFile)
 export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
-    description:
-      'Accept file upload with (multipart/form-data), If using multipart upload, the URL field is ignored.',
     oneOf: [
-      { type: 'string', format: 'binary' },
-      { type: 'string' },
       { $ref: getSchemaPath(VideoRemoteFile) },
       { $ref: getSchemaPath(VideoBinaryFile) },
     ],
   })
-  file: VideoRemoteFile | VideoBinaryFile | string;
-
-  @ApiProperty({
-    description: 'URL of the file',
-    required: false,
-    example: 'https://github.com/mininxd/waha/raw/core/examples/video.mp4',
-  })
-  @IsOptional()
-  @IsString()
-  url?: string;
+  file: VideoRemoteFile | VideoBinaryFile;
 
   caption?: string = 'Just watch at this!';
 

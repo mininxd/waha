@@ -15,10 +15,13 @@ import { WebJSEngineConfigService } from '@waha/core/config/WebJSEngineConfigSer
 import { WhatsappSessionGoWSCore } from '@waha/core/engines/gows/session.gows.core';
 import { WebhookConductor } from '@waha/core/integrations/webhooks/WebhookConductor';
 import { MediaStorageFactory } from '@waha/core/media/MediaStorageFactory';
+import { DefaultMap } from '@waha/utils/DefaultMap';
 import { getPinoLogLevel, LoggerBuilder } from '@waha/utils/logging';
 import { promiseTimeout, sleep } from '@waha/utils/promiseTimeout';
+import { complete } from '@waha/utils/reactive/complete';
+import { SwitchObservable } from '@waha/utils/reactive/SwitchObservable';
 import { PinoLogger } from 'nestjs-pino';
-import { Observable, of } from 'rxjs';
+import { Observable, retry, share } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { WhatsappConfigService } from '../config.service';
@@ -40,10 +43,21 @@ import { SessionParams, WhatsappSession } from './abc/session.abc';
 import { EngineConfigService } from './config/EngineConfigService';
 import { WhatsappSessionNoWebCore } from './engines/noweb/session.noweb.core';
 import { WhatsappSessionWebJSCore } from './engines/webjs/session.webjs.core';
+import { DOCS_URL } from './exceptions';
 import { getProxyConfig } from './helpers.proxy';
 import { MediaManager } from './media/MediaManager';
 import { LocalSessionAuthRepository } from './storage/LocalSessionAuthRepository';
 import { LocalStoreCore } from './storage/LocalStoreCore';
+
+export class OnlyDefaultSessionIsAllowed extends UnprocessableEntityException {
+  constructor(name: string) {
+    const encoded = Buffer.from(name, 'utf-8').toString('base64');
+    super(
+      `WAHA Core support only 'default' session. You tried to access '${name}' session (base64: ${encoded}). ` +
+        `If you want to run more then one WhatsApp account - please get WAHA PLUS version. Check this out: ${DOCS_URL}`,
+    );
+  }
+}
 
 enum DefaultSessionStatus {
   REMOVED = undefined,
@@ -54,12 +68,15 @@ enum DefaultSessionStatus {
 export class SessionManagerCore extends SessionManager implements OnModuleInit {
   SESSION_STOP_TIMEOUT = 3000;
 
-  private sessions: Map<string, WhatsappSession | DefaultSessionStatus> =
-    new Map();
-  private sessionConfigs: Map<string, SessionConfig> = new Map();
+  // session - exists and running (or failed or smth)
+  // null - stopped
+  // undefined - removed
+  private session: WhatsappSession | DefaultSessionStatus;
+  private sessionConfig?: SessionConfig;
   DEFAULT = 'default';
 
   protected readonly EngineClass: typeof WhatsappSession;
+  protected events2: DefaultMap<WAHAEvents, SwitchObservable<any>>;
   protected readonly engineBootstrap: EngineBootstrap;
 
   constructor(
@@ -73,13 +90,18 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     appsService: IAppsService,
   ) {
     super(log, config, gowsConfigService, appsService);
-
-    this.sessions.set(this.DEFAULT, DefaultSessionStatus.STOPPED);
-    this.sessionConfigs.set(this.DEFAULT, null);
-
+    this.session = DefaultSessionStatus.STOPPED;
+    this.sessionConfig = null;
     const engineName = this.engineConfigService.getDefaultEngineName();
     this.EngineClass = this.getEngine(engineName);
     this.engineBootstrap = this.getEngineBootstrap(engineName);
+
+    this.events2 = new DefaultMap<WAHAEvents, SwitchObservable<any>>(
+      (key) =>
+        new SwitchObservable((obs$) => {
+          return obs$.pipe(retry(), share());
+        }),
+    );
 
     this.store = new LocalStoreCore(engineName.toLowerCase());
     this.sessionAuthRepository = new LocalSessionAuthRepository(this.store);
@@ -100,16 +122,17 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     }
   }
 
-  async beforeApplicationShutdown(signal?: string) {
-    for (const [name, session] of this.sessions) {
-      if (
-        session &&
-        session !== DefaultSessionStatus.STOPPED &&
-        session !== DefaultSessionStatus.REMOVED
-      ) {
-        await this.stop(name, true);
-      }
+  private onlyDefault(name: string) {
+    if (name !== this.DEFAULT) {
+      throw new OnlyDefaultSessionIsAllowed(name);
     }
+  }
+
+  async beforeApplicationShutdown(signal?: string) {
+    if (this.session) {
+      await this.stop(this.DEFAULT, true);
+    }
+    this.stopEvents();
     await this.engineBootstrap.shutdown();
   }
 
@@ -130,33 +153,30 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
   // API Methods
   //
   async exists(name: string): Promise<boolean> {
-    return this.sessions.get(name) !== DefaultSessionStatus.REMOVED;
+    this.onlyDefault(name);
+    return this.session !== DefaultSessionStatus.REMOVED;
   }
 
   isRunning(name: string): boolean {
-    const session = this.sessions.get(name);
-    return (
-      session !== DefaultSessionStatus.STOPPED &&
-      session !== DefaultSessionStatus.REMOVED &&
-      !!session
-    );
+    this.onlyDefault(name);
+    return !!this.session;
   }
 
   async upsert(name: string, config?: SessionConfig): Promise<void> {
-    this.sessionConfigs.set(name, config);
+    this.onlyDefault(name);
+    this.sessionConfig = config;
   }
 
   async start(name: string): Promise<SessionDTO> {
-    if (this.isRunning(name)) {
+    this.onlyDefault(name);
+    if (this.session) {
       throw new UnprocessableEntityException(
-        `Session '${name}' is already started.`,
+        `Session '${this.DEFAULT}' is already started.`,
       );
     }
     this.log.info({ session: name }, `Starting session...`);
     const logger = this.log.logger.child({ session: name });
-
-    const sessionConfigData = this.sessionConfigs.get(name);
-    logger.level = getPinoLogLevel(sessionConfigData?.debug);
+    logger.level = getPinoLogLevel(this.sessionConfig?.debug);
     const loggerBuilder: LoggerBuilder = logger;
 
     const storage = await this.mediaStorageFactory.build(
@@ -171,7 +191,7 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     );
 
     const webhook = new WebhookConductor(loggerBuilder);
-    const proxyConfig = this.getProxyConfig(name);
+    const proxyConfig = this.getProxyConfig();
     const sessionConfig: SessionParams = {
       name,
       mediaManager,
@@ -179,8 +199,8 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
       printQR: this.engineConfigService.shouldPrintQR,
       sessionStore: this.store,
       proxyConfig: proxyConfig,
-      sessionConfig: sessionConfigData,
-      ignore: this.ignoreChatsConfig(sessionConfigData),
+      sessionConfig: this.sessionConfig,
+      ignore: this.ignoreChatsConfig(this.sessionConfig),
     };
     if (this.EngineClass === WhatsappSessionWebJSCore) {
       sessionConfig.engineConfig = this.webjsEngineConfigService.getConfig();
@@ -190,10 +210,11 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     await this.sessionAuthRepository.init(name);
     // @ts-ignore
     const session = new this.EngineClass(sessionConfig);
-    this.sessions.set(name, session);
+    this.session = session;
+    this.updateSession();
 
     // configure webhooks
-    const webhooks = this.getWebhooks(sessionConfigData);
+    const webhooks = this.getWebhooks();
     webhook.configure(session, webhooks);
 
     // Apps
@@ -222,23 +243,26 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     };
   }
 
-  getSessionEvent(sessionName: string, event: WAHAEvents): Observable<any> {
-    const session = this.sessions.get(sessionName);
-    if (
-      session &&
-      session !== DefaultSessionStatus.STOPPED &&
-      session !== DefaultSessionStatus.REMOVED
-    ) {
-      return (session as WhatsappSession)
-        .getEventObservable(event)
-        .pipe(
-          map(populateSessionInfo(event, session as WhatsappSession)),
-        );
+  private updateSession() {
+    if (!this.session) {
+      return;
     }
-    return of();
+    const session: WhatsappSession = this.session as WhatsappSession;
+    for (const eventName in WAHAEvents) {
+      const event = WAHAEvents[eventName];
+      const stream$ = session
+        .getEventObservable(event)
+        .pipe(map(populateSessionInfo(event, session)));
+      this.events2.get(event).switch(stream$);
+    }
+  }
+
+  getSessionEvent(session: string, event: WAHAEvents): Observable<any> {
+    return this.events2.get(event);
   }
 
   async stop(name: string, silent: boolean): Promise<void> {
+    this.onlyDefault(name);
     if (!this.isRunning(name)) {
       this.log.debug({ session: name }, `Session is not running.`);
       return;
@@ -255,45 +279,44 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
       }
     }
     this.log.info({ session: name }, `Session has been stopped.`);
-    this.sessions.set(name, DefaultSessionStatus.STOPPED);
+    this.session = DefaultSessionStatus.STOPPED;
+    this.updateSession();
     await sleep(this.SESSION_STOP_TIMEOUT);
   }
 
   async unpair(name: string) {
-    const session = this.sessions.get(name);
-    if (
-      !session ||
-      session === DefaultSessionStatus.STOPPED ||
-      session === DefaultSessionStatus.REMOVED
-    ) {
+    if (!this.session) {
       return;
     }
-    const whatsappSession = session as WhatsappSession;
+    const session = this.session as WhatsappSession;
 
     this.log.info({ session: name }, 'Unpairing the device from account...');
-    await whatsappSession.unpair().catch((err) => {
+    await session.unpair().catch((err) => {
       this.log.warn(`Error while unpairing from device: ${err}`);
     });
     await sleep(1000);
   }
 
   async logout(name: string): Promise<void> {
+    this.onlyDefault(name);
     await this.sessionAuthRepository.clean(name);
   }
 
   async delete(name: string): Promise<void> {
+    this.onlyDefault(name);
     await this.appsService.removeBySession(this, name);
-    this.sessions.delete(name);
-    this.sessionConfigs.delete(name);
+    this.session = DefaultSessionStatus.REMOVED;
+    this.updateSession();
+    this.sessionConfig = undefined;
   }
 
   /**
    * Combine per session and global webhooks
    */
-  private getWebhooks(sessionConfig?: SessionConfig) {
+  private getWebhooks() {
     let webhooks: WebhookConfig[] = [];
-    if (sessionConfig?.webhooks) {
-      webhooks = webhooks.concat(sessionConfig.webhooks);
+    if (this.sessionConfig?.webhooks) {
+      webhooks = webhooks.concat(this.sessionConfig.webhooks);
     }
     const globalWebhookConfig = this.config.getWebhookConfig();
     if (globalWebhookConfig) {
@@ -305,40 +328,21 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
   /**
    * Get either session's or global proxy if defined
    */
-  protected getProxyConfig(name: string): ProxyConfig | undefined {
-    const sessionConfig = this.sessionConfigs.get(name);
-    if (sessionConfig?.proxy) {
-      return sessionConfig.proxy;
+  protected getProxyConfig(): ProxyConfig | undefined {
+    if (this.sessionConfig?.proxy) {
+      return this.sessionConfig.proxy;
     }
-    const session = this.sessions.get(name);
-    if (
-      session === undefined ||
-      session === DefaultSessionStatus.STOPPED ||
-      session === DefaultSessionStatus.REMOVED
-    ) {
+    if (!this.session) {
       return undefined;
     }
-
-    // Now session is WhatsappSession
-    const activeSessions: Record<string, WhatsappSession> = {};
-    for (const [key, value] of this.sessions) {
-      if (
-        value !== DefaultSessionStatus.STOPPED &&
-        value !== DefaultSessionStatus.REMOVED
-      ) {
-        activeSessions[key] = value as WhatsappSession;
-      }
-    }
-    return getProxyConfig(this.config, activeSessions, name);
+    const sessions = { [this.DEFAULT]: this.session as WhatsappSession };
+    return getProxyConfig(this.config, sessions, this.DEFAULT);
   }
 
   getSession(name: string): WhatsappSession {
-    const session = this.sessions.get(name);
-    if (
-      !session ||
-      session === DefaultSessionStatus.STOPPED ||
-      session === DefaultSessionStatus.REMOVED
-    ) {
+    this.onlyDefault(name);
+    const session = this.session;
+    if (!session) {
       throw new NotFoundException(
         `We didn't find a session with name '${name}'.\n` +
           `Please start it first by using POST /api/sessions/${name}/start request`,
@@ -348,44 +352,45 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
   }
 
   async getSessions(all: boolean): Promise<SessionInfo[]> {
-    const result: SessionInfo[] = [];
-    for (const [name, session] of this.sessions) {
-      if (session === DefaultSessionStatus.REMOVED || session === undefined) {
-        continue;
-      }
-      if (session === DefaultSessionStatus.STOPPED) {
-        if (all) {
-          result.push({
-            name: name,
-            status: WAHASessionStatus.STOPPED,
-            config: this.sessionConfigs.get(name),
-            me: null,
-            presence: null,
-            timestamps: {
-              activity: null,
-            },
-          });
-        }
-        continue;
-      }
-
-      const s = session as WhatsappSession;
-      const me = s?.getSessionMeInfo();
-      result.push({
-        name: s.name,
-        status: s.status,
-        config: s.sessionConfig,
-        me: me,
-        presence: s.presence,
-        timestamps: {
-          activity: s?.getLastActivityTimestamp(),
+    if (this.session === DefaultSessionStatus.STOPPED && all) {
+      return [
+        {
+          name: this.DEFAULT,
+          status: WAHASessionStatus.STOPPED,
+          config: this.sessionConfig,
+          me: null,
+          presence: null,
+          timestamps: {
+            activity: null,
+          },
         },
-      });
+      ];
     }
-    return result;
+    if (this.session === DefaultSessionStatus.REMOVED && all) {
+      return [];
+    }
+    if (!this.session && !all) {
+      return [];
+    }
+
+    const session = this.session as WhatsappSession;
+    const me = session?.getSessionMeInfo();
+    return [
+      {
+        name: session.name,
+        status: session.status,
+        config: session.sessionConfig,
+        me: me,
+        presence: session.presence,
+        timestamps: {
+          activity: session?.getLastActivityTimestamp(),
+        },
+      },
+    ];
   }
 
-  private async fetchEngineInfo(session: WhatsappSession) {
+  private async fetchEngineInfo() {
+    const session = this.session as WhatsappSession;
     // Get engine info
     let engineInfo = {};
     if (session) {
@@ -406,42 +411,21 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
   }
 
   async getSessionInfo(name: string): Promise<SessionDetailedInfo | null> {
-    const sessionStatus = this.sessions.get(name);
-
-    if (sessionStatus === DefaultSessionStatus.STOPPED) {
-      return {
-        name: name,
-        status: WAHASessionStatus.STOPPED,
-        config: this.sessionConfigs.get(name),
-        me: null,
-        presence: null,
-        timestamps: {
-          activity: null,
-        },
-        engine: {},
-      };
-    }
-    if (
-      sessionStatus === DefaultSessionStatus.REMOVED ||
-      sessionStatus === undefined
-    ) {
+    this.onlyDefault(name);
+    const sessions = await this.getSessions(true);
+    if (sessions.length === 0) {
       return null;
     }
-
-    const session = sessionStatus as WhatsappSession;
-    const me = session?.getSessionMeInfo();
-    const engine = await this.fetchEngineInfo(session);
+    const session = sessions[0];
+    const engine = await this.fetchEngineInfo();
     return {
-      name: session.name,
-      status: session.status,
-      config: session.sessionConfig,
-      me: me,
-      presence: session.presence,
-      timestamps: {
-        activity: session?.getLastActivityTimestamp(),
-      },
+      ...session,
       engine: engine,
     };
+  }
+
+  protected stopEvents() {
+    complete(this.events2);
   }
 
   async onModuleInit() {

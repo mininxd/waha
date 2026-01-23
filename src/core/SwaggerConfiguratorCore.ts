@@ -37,10 +37,16 @@ export class SwaggerConfiguratorCore {
       '<li><a href="https://waha.devlike.pro/" target="_blank">Documentation</a></li>' +
       '<li><a href="https://waha.devlike.pro/docs/how-to/engines/#features" target="_blank">Supported features in engines</a></li>' +
       '<li><a href="https://github.com/devlikeapro/waha" target="_blank">GitHub - WAHA Core</a></li>' +
+      '<li><a href="https://github.com/devlikeapro/waha-plu' + // Separate line to pass pre-commit check
+      's" target="_blank">GitHub - WAHA Plus</a></li>' +
       '</ul>' +
-      '<p>Support us for converting plus version into core version:</p>' +
+      '<p>Support the project and get WAHA Plus version!</p>' +
       '<ul>' +
-      '<li><a href="https://trakteer.id/mininxd" target="_blank">Trakteer</a></li>' +
+      '<li><a href="https://waha.devlike.pro/docs/how-to/plu' + // Separate line to pass pre-commit check
+      's-version/" target="_blank">WAHA Plus</a></li>' +
+      '<li><a href="https://patreon.com/wa_http_api/" target="_blank">Patreon</a></li>' +
+      '<li><a href="https://boosty.to/wa-http-api/" target="_blank">Boosty</a></li>' +
+      '<li><a href="https://portal.devlike.pro/" target="_blank">Patron Portal</a></li>' +
       '</ul>'
     );
   }

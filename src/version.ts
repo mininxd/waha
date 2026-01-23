@@ -10,7 +10,7 @@ const fs = require('fs');
 
 export enum WAHAVersion {
   PLUS = 'PLUS',
-  CORE = 'PLUS LITE',
+  CORE = 'CORE',
 }
 
 export function getWAHAVersion(): WAHAVersion {
@@ -29,12 +29,22 @@ export function getWAHAVersion(): WAHAVersion {
   return WAHAVersion.CORE;
 }
 
+function getBrowser() {
+  return getEngineName() === WAHAEngine.WEBJS
+    ? getBrowserExecutablePath()
+    : null;
+}
+
+function getPlatform() {
+  return `${process.platform}/${process.arch}`;
+}
+
 export const VERSION: WAHAEnvironment = {
-  version: '2026.1.7',
+  version: '2026.1.3',
   engine: getEngineName(),
   tier: getWAHAVersion(),
-  browser:
-    getEngineName() === WAHAEngine.WEBJS ? getBrowserExecutablePath() : null,
+  browser: getBrowser(),
+  platform: getPlatform(),
 };
 
 export const IsChrome = VERSION.browser?.includes('chrome');
