@@ -114,6 +114,7 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
+  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -1012,16 +1013,68 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return await this.sock.sendMessage(request.chatId, message, options);
   }
 
-  sendImage(request: MessageImageRequest) {
-    throw new AvailableInPlusVersion();
+  protected async getMedia(file: BinaryFile | RemoteFile): Promise<any> {
+    if ('url' in file) {
+      return { url: file.url };
+    } else {
+      return Buffer.from(file.data, 'base64');
+    }
   }
 
-  sendFile(request: MessageFileRequest) {
-    throw new AvailableInPlusVersion();
+  @Activity()
+  async sendImage(request: MessageImageRequest) {
+    const chatId = toJID(this.ensureSuffix(request.chatId));
+    const media = await this.getMedia(request.file);
+    const options = await this.getMessageOptions(request);
+    const message = {
+      image: media,
+      caption: request.caption,
+      mentions: request.mentions?.map(toJID),
+    };
+    return this.sock.sendMessage(chatId, message, options);
   }
 
-  sendVoice(request: MessageVoiceRequest) {
-    throw new AvailableInPlusVersion();
+  @Activity()
+  async sendFile(request: MessageFileRequest) {
+    const chatId = toJID(this.ensureSuffix(request.chatId));
+    const media = await this.getMedia(request.file);
+    const options = await this.getMessageOptions(request);
+    const message = {
+      document: media,
+      caption: request.caption,
+      mentions: request.mentions?.map(toJID),
+      mimetype: request.file.mimetype,
+      fileName: request.file.filename,
+    };
+    return this.sock.sendMessage(chatId, message, options);
+  }
+
+  @Activity()
+  async sendVoice(request: MessageVoiceRequest) {
+    const chatId = toJID(this.ensureSuffix(request.chatId));
+    const media = await this.getMedia(request.file);
+    const options = await this.getMessageOptions(request);
+    const message = {
+      audio: media,
+      ptt: true,
+      mentions: request.mentions?.map(toJID),
+      mimetype: 'audio/ogg; codecs=opus',
+    };
+    return this.sock.sendMessage(chatId, message, options);
+  }
+
+  @Activity()
+  async sendVideo(request: MessageVideoRequest) {
+    const chatId = toJID(this.ensureSuffix(request.chatId));
+    const media = await this.getMedia(request.file);
+    const options = await this.getMessageOptions(request);
+    const message = {
+      video: media,
+      caption: request.caption,
+      mentions: request.mentions?.map(toJID),
+      ptv: request.asNote,
+    };
+    return this.sock.sendMessage(chatId, message, options);
   }
 
   sendLinkCustomPreview(
@@ -1034,10 +1087,10 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     file: RemoteFile | BinaryFile,
     type,
   ): Promise<any> {
-    if (file && ('url' in file || 'data' in file)) {
-      throw new AvailableInPlusVersion('Sending media (image, video, pdf)');
+    if (!file) {
+      return undefined;
     }
-    return;
+    return this.getMedia(file);
   }
 
   @Activity()

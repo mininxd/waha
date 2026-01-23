@@ -335,6 +335,9 @@ export class MessageVoiceRequest extends ChatRequest {
 
   @ConvertApiProperty()
   convert: boolean;
+
+  @ApiHideProperty()
+  mentions?: string[];
 }
 
 @ApiExtraModels(VideoRemoteFile, VideoBinaryFile)
