@@ -5,10 +5,12 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { WAHAFileInterceptor } from '@waha/nestjs/WAHAFileInterceptor';
 import { WAHAValidationPipe } from '@waha/nestjs/pipes/WAHAValidationPipe';
 import {
   GetChatMessagesFilter,
@@ -67,6 +69,7 @@ export class ChattingController {
   }
 
   @Post('/sendImage')
+  @UseInterceptors(WAHAFileInterceptor)
   @ApiOperation({
     summary: 'Send an image',
     description:
@@ -82,6 +85,7 @@ export class ChattingController {
   }
 
   @Post('/sendFile')
+  @UseInterceptors(WAHAFileInterceptor)
   @ApiOperation({
     summary: 'Send a file',
     description:
@@ -97,6 +101,7 @@ export class ChattingController {
   }
 
   @Post('/sendVoice')
+  @UseInterceptors(WAHAFileInterceptor)
   @ApiOperation({
     summary: 'Send an voice message',
     description:
@@ -108,6 +113,7 @@ export class ChattingController {
   }
 
   @Post('/sendVideo')
+  @UseInterceptors(WAHAFileInterceptor)
   @ApiOperation({
     summary: 'Send a video',
     description:
