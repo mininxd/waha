@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsBase64,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUrl,
-} from 'class-validator';
+import { IsBase64, IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class Base64File {
   mimetype: string;
@@ -30,8 +24,7 @@ export class RemoteFile {
       process.env.WHATSAPP_SWAGGER_JPG_EXAMPLE_URL ||
       'https://github.com/devlikeapro/waha/raw/core/examples/waha.jpg',
   })
-  @IsOptional()
-  url?: string;
+  url: string;
 }
 
 export class BinaryFile {

@@ -78,7 +78,6 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
-  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -98,7 +97,7 @@ import {
   WAHASessionStatus,
   WAMessageAck,
 } from '@waha/structures/enums.dto';
-import { BinaryFile, RemoteFile, VoiceBinaryFile, VoiceRemoteFile, VideoBinaryFile } from '@waha/structures/files.dto';
+import { BinaryFile, RemoteFile } from '@waha/structures/files.dto';
 import {
   CreateGroupRequest,
   GroupParticipant,
@@ -122,11 +121,7 @@ import {
 } from '@waha/structures/responses.dto';
 import { BrowserTraceQuery } from '@waha/structures/server.debug.dto';
 import { MeInfo } from '@waha/structures/sessions.dto';
-import {
-  DeleteStatusRequest,
-  StatusRequest,
-  TextStatus,
-} from '@waha/structures/status.dto';
+import { DeleteStatusRequest, TextStatus } from '@waha/structures/status.dto';
 import {
   EnginePayload,
   PollVote as WAHAPollVote,
@@ -186,7 +181,10 @@ import {
 import { Activity } from '@waha/core/abc/activity';
 import { CallData } from '@waha/structures/calls.dto';
 import { Jid } from '@waha/core/engines/const';
-import { getSessionStorePath } from '@waha/core/config/session-store';
+import {
+  WAHA_CLIENT_BROWSER_NAME,
+  WAHA_CLIENT_DEVICE_NAME,
+} from '@waha/core/env';
 
 export interface WebJSConfig {
   webVersion?: string;
@@ -248,6 +246,10 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     // add at the start
     args.unshift(`--a-waha-timestamp=${new Date()}`);
     args.unshift(`--a-waha-session=${this.name}`);
+    const deviceName =
+      this.sessionConfig?.client?.deviceName ?? WAHA_CLIENT_DEVICE_NAME;
+    const browserName =
+      this.sessionConfig?.client?.browserName ?? WAHA_CLIENT_BROWSER_NAME;
     return {
       puppeteer: {
         protocolTimeout: 300_000,
@@ -257,7 +259,9 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
         dumpio: this.isDebugEnabled(),
       },
       userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+      deviceName: deviceName,
+      browserName: browserName,
       webVersion: webVersion,
       webVersionCache: {
         type: cacheType,
@@ -269,7 +273,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
 
   protected async buildClient() {
     const clientOptions = this.getClientOptions();
-    const base = path.resolve(getSessionStorePath());
+    const base = process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
     clientOptions.authStrategy = new LocalAuth({
       clientId: this.name,
       dataPath: `${base}/webjs/default`,
@@ -523,10 +527,29 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
       }
     });
 
-    this.whatsapp.on(Events.AUTHENTICATED, (args) => {
+    this.whatsapp.on(Events.AUTHENTICATED, async (args) => {
       this.status = WAHASessionStatus.WORKING;
       this.qr.save('');
       this.logger.info({ args: args }, `Session has been authenticated!`);
+
+      // Try to get client info from puppeter if nothing set
+      // Fix https://github.com/devlikeapro/waha/issues/1735
+      await sleep(3_000);
+      if (!this.whatsapp.info) {
+        // try to load client info few times with a delay
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await this.loadClientInfo().catch((error) =>
+            this.logger.error(
+              error,
+              `Failed to load client info, attempt ${attempt + 1}`,
+            ),
+          );
+          if (this.whatsapp.info) {
+            break;
+          }
+          await sleep(3_000);
+        }
+      }
     });
 
     this.whatsapp.on(Events.AUTHENTICATION_FAILURE, (args) => {
@@ -585,6 +608,21 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
         log.info('Session has recovered, no need to restart.');
       });
     });
+  }
+
+  private async loadClientInfo() {
+    const data = await this.whatsapp.pupPage.evaluate(() => {
+      return {
+        // @ts-ignore
+        ...window.Store.Conn.serialize(),
+        wid:
+          // @ts-ignore
+          window.Store.User.getMaybeMePnUser() ||
+          // @ts-ignore
+          window.Store.User.getMaybeMeLidUser(),
+      };
+    });
+    this.whatsapp.info = data as any;
   }
 
   /**
@@ -668,17 +706,12 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     return true;
   }
 
-  protected async setProfilePicture(
-    file: BinaryFile | RemoteFile,
-  ): Promise<boolean> {
-    const media = await this.getMediaFromFile(file);
-    // @ts-ignore
-    return await this.whatsapp.setProfilePicture(media);
+  protected setProfilePicture(file: BinaryFile | RemoteFile): Promise<boolean> {
+    throw new AvailableInPlusVersion();
   }
 
-  protected async deleteProfilePicture(): Promise<boolean> {
-    // @ts-ignore
-    return await this.whatsapp.deleteProfilePicture();
+  protected deleteProfilePicture(): Promise<boolean> {
+    throw new AvailableInPlusVersion();
   }
 
   /**
@@ -771,64 +804,16 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  async sendImage(request: MessageImageRequest) {
-    const { file } = request;
-    const media = await this.getMediaFromFile(file);
-    const options = this.getMessageOptions(request);
-    options.caption = request.caption;
-    return this.whatsapp.sendMessage(
-      this.ensureSuffix(request.chatId),
-      media,
-      options,
-    );
+  sendImage(request: MessageImageRequest) {
+    throw new AvailableInPlusVersion();
   }
 
-  async sendFile(request: MessageFileRequest) {
-    const { file } = request;
-    const media = await this.getMediaFromFile(file);
-    const options = this.getMessageOptions(request);
-    options.caption = request.caption;
-    return this.whatsapp.sendMessage(
-      this.ensureSuffix(request.chatId),
-      media,
-      options,
-    );
+  sendFile(request: MessageFileRequest) {
+    throw new AvailableInPlusVersion();
   }
 
-  async sendVoice(request: MessageVoiceRequest) {
-    const { file } = request;
-    const media = await this.getMediaFromFile(file);
-    const options = this.getMessageOptions(request);
-    options.sendAudioAsVoice = true;
-    return this.whatsapp.sendMessage(
-      this.ensureSuffix(request.chatId),
-      media,
-      options,
-    );
-  }
-
-  async sendVideo(request: MessageVideoRequest) {
-    const { file } = request;
-    const media = await this.getMediaFromFile(file);
-    const options = this.getMessageOptions(request);
-    options.caption = request.caption;
-    return this.whatsapp.sendMessage(
-      this.ensureSuffix(request.chatId),
-      media,
-      options,
-    );
-  }
-
-  protected async getMediaFromFile(file: BinaryFile | RemoteFile | VoiceBinaryFile | VoiceRemoteFile | VideoBinaryFile | string) {
-    if (typeof file === 'string') {
-      return await MessageMedia.fromUrl(file);
-    } else if ('url' in file && file.url) {
-      return await MessageMedia.fromUrl(file.url);
-    } else if ('data' in file) {
-      return new MessageMedia(file.mimetype, file.data, file.filename);
-    } else {
-      throw new Error('Invalid file format: missing data or url property');
-    }
+  sendVoice(request: MessageVoiceRequest) {
+    throw new AvailableInPlusVersion();
   }
 
   sendButtonsReply(request: MessageButtonReply) {
@@ -1407,45 +1392,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     inviteCode: string,
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
-    const metadata = await this.whatsapp.getChannelByInviteCode(inviteCode);
-    const channelId = metadata.id._serialized;
-    const channel = (await this.whatsapp.getChatById(
-      channelId,
-    )) as unknown as WEBJSChannel;
-
-    const limit = query.limit || 10;
-    // Cast to any because fetchMessages might not be in the types yet
-    const messages = await (channel as any).fetchMessages({ limit: limit });
-
-    const result: ChannelMessage[] = [];
-    for (const msg of messages) {
-      const wamessage = await this.processIncomingMessage(
-        msg,
-        query.downloadMedia,
-      );
-
-      // Try to extract extra info
-      // @ts-ignore
-      const viewCount = msg.rawData?.viewCount || 0;
-      // @ts-ignore
-      const reactionCounts = msg.rawData?.reactions || [];
-      const reactions = {};
-      // reactionCounts might be array of { content: '👍', count: 10 }
-      if (Array.isArray(reactionCounts)) {
-        for (const r of reactionCounts) {
-          if (r.content && r.count) {
-            reactions[r.content] = r.count;
-          }
-        }
-      }
-
-      result.push({
-        message: wamessage,
-        reactions: reactions,
-        viewCount: viewCount,
-      });
-    }
-    return result;
+    throw new AvailableInPlusVersion();
   }
 
   protected ChatToChannel(chat: WEBJSChannel): Channel {

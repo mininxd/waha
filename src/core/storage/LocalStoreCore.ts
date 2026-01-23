@@ -5,10 +5,10 @@ import * as path from 'path';
 
 import { LocalStore } from './LocalStore';
 import { KNEX_SQLITE_CLIENT } from '@waha/core/env';
-import { getSessionStorePath } from '@waha/core/config/session-store';
 
 export class LocalStoreCore extends LocalStore {
-  protected readonly baseDirectory: string = getSessionStorePath();
+  protected readonly baseDirectory: string =
+    process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
 
   private readonly engine: string;
   private knex: Knex.Knex;

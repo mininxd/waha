@@ -1,4 +1,4 @@
-import type { WABrowserDescription } from '@adiwajshing/baileys';
+import { Browsers, WABrowserDescription } from '@adiwajshing/baileys';
 import makeWASocket, {
   Chat,
   Contact,
@@ -114,7 +114,6 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
-  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -206,6 +205,10 @@ import {
 import { extractWALocation } from '@waha/core/engines/waproto/locaiton';
 import { extractVCards } from '@waha/core/engines/waproto/vcards';
 import { Activity } from '@waha/core/abc/activity';
+import {
+  WAHA_CLIENT_BROWSER_NAME,
+  WAHA_CLIENT_DEVICE_NAME,
+} from '@waha/core/env';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const promiseRetry = require('promise-retry');
 
@@ -315,8 +318,37 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   }
 
   getSocketConfig(agents: Agents | undefined, state): Partial<SocketConfig> {
+    // Detect browser
+    let browser = ['Ubuntu', 'Chrome', '22.04.4'] as WABrowserDescription;
+    let deviceName =
+      this.sessionConfig?.client?.deviceName ?? WAHA_CLIENT_DEVICE_NAME;
+    let browserName =
+      this.sessionConfig?.client?.browserName ?? WAHA_CLIENT_BROWSER_NAME;
+    if (browserName && !deviceName) {
+      browser = Browsers.appropriate(browserName);
+    } else if (!browserName && deviceName) {
+      browser = [deviceName, 'Chrome', '22.04.4'];
+    } else if (browserName && deviceName) {
+      switch (deviceName) {
+        case 'Mac OS':
+        case 'MacOS':
+        case 'macos':
+          browser = Browsers.macOS(browserName);
+          break;
+        case 'ubuntu':
+        case 'Ubuntu':
+          browser = Browsers.ubuntu(browserName);
+          break;
+        case 'windows':
+        case 'Windows':
+          browser = Browsers.windows(browserName);
+          break;
+        default:
+          browser = [deviceName, browserName, '22.04.4'];
+      }
+    }
+
     const fullSyncEnabled = this.sessionConfig?.noweb?.store?.fullSync || false;
-    const browser = ['Ubuntu', 'Chrome', '20.0.04'] as WABrowserDescription;
     let markOnlineOnConnect = this.sessionConfig?.noweb?.markOnline;
     if (markOnlineOnConnect == undefined) {
       markOnlineOnConnect = true;
@@ -865,28 +897,12 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return true;
   }
 
-  protected async setProfilePicture(
-    file: BinaryFile | RemoteFile,
-  ): Promise<boolean> {
-    let buffer: Buffer;
-    if ('url' in file && file.url) {
-      buffer = await this.fetch(file.url);
-    } else if ('data' in file && file.data) {
-      buffer = Buffer.from(file.data, 'base64');
-    } else {
-      throw new Error('File must have "url" or "data"');
-    }
-    const me = this.getSessionMeInfo();
-    // @ts-ignore
-    await this.sock.updateProfilePicture(toJID(me.id), buffer);
-    return true;
+  protected setProfilePicture(file: BinaryFile | RemoteFile): Promise<boolean> {
+    throw new AvailableInPlusVersion();
   }
 
-  protected async deleteProfilePicture(): Promise<boolean> {
-    const me = this.getSessionMeInfo();
-    // @ts-ignore
-    await this.sock.removeProfilePicture(toJID(me.id));
-    return true;
+  protected deleteProfilePicture(): Promise<boolean> {
+    throw new AvailableInPlusVersion();
   }
 
   /**
@@ -996,102 +1012,16 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return await this.sock.sendMessage(request.chatId, message, options);
   }
 
-  protected getFile(request: {
-    file: BinaryFile | RemoteFile | string;
-    url?: string;
-  }): BinaryFile | RemoteFile | string {
-    if (request.file) {
-      return request.file;
-    }
-    if (request.url) {
-      return request.url;
-    }
-    throw new Error('File or URL is required');
+  sendImage(request: MessageImageRequest) {
+    throw new AvailableInPlusVersion();
   }
 
-  async sendImage(request: MessageImageRequest) {
-    const chatId = toJID(this.ensureSuffix(request.chatId));
-    const file = this.getFile(request);
-    const media = await this.getBaileysMedia(file);
-    const options = await this.getMessageOptions(request);
-    const message = {
-      image: media,
-      caption: request.caption,
-      mentions: request.mentions?.map(toJID),
-    };
-    return this.sock.sendMessage(chatId, message, options);
+  sendFile(request: MessageFileRequest) {
+    throw new AvailableInPlusVersion();
   }
 
-  async sendFile(request: MessageFileRequest) {
-    const chatId = toJID(this.ensureSuffix(request.chatId));
-    const file = this.getFile(request);
-    const media = await this.getBaileysMedia(file);
-    const options = await this.getMessageOptions(request);
-    let mimetype;
-    let filename;
-    if (typeof file !== 'string') {
-      if ('mimetype' in file) {
-        mimetype = file.mimetype;
-      }
-      if ('filename' in file) {
-        filename = file.filename;
-      }
-    }
-    const message = {
-      document: media,
-      mimetype: mimetype,
-      fileName: filename,
-      caption: request.caption,
-      mentions: request.mentions?.map(toJID),
-    };
-    return this.sock.sendMessage(chatId, message, options);
-  }
-
-  async sendVoice(request: MessageVoiceRequest) {
-    const chatId = toJID(this.ensureSuffix(request.chatId));
-    const file = this.getFile(request);
-    const media = await this.getBaileysMedia(file);
-    const options = await this.getMessageOptions(request);
-    let mimetype = 'audio/ogg; codecs=opus';
-    if (typeof file !== 'string' && 'mimetype' in file) {
-      mimetype = file.mimetype;
-    }
-    const message = {
-      audio: media,
-      ptt: true,
-      mimetype: mimetype,
-    };
-    return this.sock.sendMessage(chatId, message, options);
-  }
-
-  async sendVideo(request: MessageVideoRequest) {
-    const chatId = toJID(this.ensureSuffix(request.chatId));
-    const { file } = request;
-    const media = await this.getBaileysMedia(file);
-    const options = await this.getMessageOptions(request);
-    const message = {
-      video: media,
-      caption: request.caption,
-      mentions: request.mentions?.map(toJID),
-      ptv: request.asNote,
-    };
-    return this.sock.sendMessage(chatId, message, options);
-  }
-
-  protected async getBaileysMedia(file: BinaryFile | RemoteFile | string) {
-    if (typeof file === 'string') {
-      if (file.startsWith('http')) {
-        return { url: file };
-      }
-      return Buffer.from(file, 'base64');
-    }
-    if ('url' in file && file.url) {
-      return { url: file.url };
-    }
-    if ('data' in file && file.data) {
-      return Buffer.from(file.data, 'base64');
-    }
-    throw new Error('File must have "url" or "data"');
+  sendVoice(request: MessageVoiceRequest) {
+    throw new AvailableInPlusVersion();
   }
 
   sendLinkCustomPreview(
@@ -2979,6 +2909,12 @@ export function extractBody(message): string | null {
     const mediaContent = extractMediaContent(content);
     // @ts-ignore - AudioMessage doesn't have caption field
     body = mediaContent?.caption;
+  }
+  if (!body && content.protocolMessage?.editedMessage) {
+    body = extractBody(content.protocolMessage.editedMessage);
+  }
+  if (!body && content.associatedChildMessage?.message) {
+    body = extractBody(content.associatedChildMessage.message);
   }
   // Response for buttons
   if (!body) {

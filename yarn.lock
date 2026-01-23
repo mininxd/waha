@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@github:devlikeapro/Baileys#fork-master-2025-12-17":
   version: 7.0.0-rc.9
-  resolution: "@adiwajshing/baileys@https://github.com/devlikeapro/Baileys.git#commit=425b11f5b2d98c808210fab78afc6257f27f2fe5"
+  resolution: "@adiwajshing/baileys@https://github.com/devlikeapro/Baileys.git#commit=21289d1c97dd4b6b0c2585c0f77cecc486fb9f2f"
   dependencies:
     "@cacheable/node-cache": "npm:^1.4.0"
     "@hapi/boom": "npm:^9.1.3"
@@ -31,7 +31,7 @@ __metadata:
       optional: true
     link-preview-js:
       optional: true
-  checksum: 10/2b58dffc216fe6518e3f72532de60765e7d8c371cdc17221b79c98d74752a5b6c08f5ea2af4543b12bd6c55f1434d1b6b697e4b31f33fea50069b7b4b774feb1
+  checksum: 10/6d3cbdbbb490356b89d65310244a8120f650641efbfd43f6fea4c5296c17d75feaeb7d870ee2ba77015b97c94c7ffd1950d0e6466b5c0dbc5eae020e68cf85d5
   languageName: node
   linkType: hard
 
@@ -3819,15 +3819,6 @@ __metadata:
   version: 1.3.5
   resolution: "@types/mime@npm:1.3.5"
   checksum: 10/e29a5f9c4776f5229d84e525b7cd7dd960b51c30a0fb9a028c0821790b82fca9f672dab56561e2acd9e8eed51d431bde52eafdfef30f643586c4162f1aecfc78
-  languageName: node
-  linkType: hard
-
-"@types/multer@npm:^2":
-  version: 2.0.0
-  resolution: "@types/multer@npm:2.0.0"
-  dependencies:
-    "@types/express": "npm:*"
-  checksum: 10/87ddd5b39fd572b1d98f84908738eed9fef53fc20628bff066d43b3bcf70481f51010a997554ed65c97121e7b8fe44b59a24cd68ccf59c3d7c64bbffb8c5a127
   languageName: node
   linkType: hard
 
@@ -9341,7 +9332,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multer@npm:2.0.2, multer@npm:^2.0.2":
+"multer@npm:2.0.2":
   version: 2.0.2
   resolution: "multer@npm:2.0.2"
   dependencies:
@@ -12587,7 +12578,6 @@ __metadata:
     "@types/express": "npm:^4.17.3"
     "@types/jest": "npm:26.0.10"
     "@types/lodash": "npm:^4.14.194"
-    "@types/multer": "npm:^2"
     "@types/mustache": "npm:^4.2.5"
     "@types/node": "npm:^18.14.2"
     "@types/node-fetch": "npm:^2.6.13"
@@ -12631,7 +12621,6 @@ __metadata:
     mime-types: "npm:^2.1.27"
     mongodb: "npm:6.9.0"
     ms: "npm:^2.1.3"
-    multer: "npm:^2.0.2"
     mustache: "npm:^4.2.0"
     nestjs-pino: "npm:^4.1.0"
     node-cache: "npm:5.1.2"
@@ -12767,7 +12756,7 @@ __metadata:
 
 "whatsapp-web.js@github:devlikeapro/whatsapp-web.js#fork-main-2025-12-17":
   version: 1.34.3
-  resolution: "whatsapp-web.js@https://github.com/devlikeapro/whatsapp-web.js.git#commit=8349fcd26fd2bbede0e6739b0da9b9ce97fe6c14"
+  resolution: "whatsapp-web.js@https://github.com/devlikeapro/whatsapp-web.js.git#commit=766bb3957a81338250ee830d34cfceec278e545e"
   dependencies:
     "@pedroslopez/moduleraid": "npm:^5.0.2"
     archiver: "npm:^5.3.1"
@@ -12785,7 +12774,7 @@ __metadata:
       optional: true
     unzipper:
       optional: true
-  checksum: 10/b53255dfd1c0336232f4f4683e67779bea2f002242084961ecec59844595414a80f7172859eb4a8983e9dd6c276de6a97bfdec5135c7d4ec6ee5ed638a6e8346
+  checksum: 10/cb54d6192bd5d24c5521d1d5599fc7da65e87c3dfc595cab708b7335e95842d31fd7c0d84a7c479202de55bda67c4dcaec802150568e5f35815b6b07fd669d57
   languageName: node
   linkType: hard
 
