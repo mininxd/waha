@@ -78,6 +78,7 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
+  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -185,6 +186,7 @@ import {
   WAHA_CLIENT_BROWSER_NAME,
   WAHA_CLIENT_DEVICE_NAME,
 } from '@waha/core/env';
+import { getSessionStorePath } from '@waha/core/config/session-store';
 
 export interface WebJSConfig {
   webVersion?: string;
@@ -273,7 +275,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
 
   protected async buildClient() {
     const clientOptions = this.getClientOptions();
-    const base = process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
+    const base = getSessionStorePath();
     clientOptions.authStrategy = new LocalAuth({
       clientId: this.name,
       dataPath: `${base}/webjs/default`,
@@ -804,16 +806,65 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  sendImage(request: MessageImageRequest) {
-    throw new AvailableInPlusVersion();
+  protected async getMedia(
+    file: BinaryFile | RemoteFile,
+  ): Promise<MessageMedia> {
+    if ('url' in file) {
+      return await MessageMedia.fromUrl(file.url, {
+        unsafeMime: true,
+        filename: file.filename,
+      });
+    } else {
+      return new MessageMedia(file.mimetype, file.data, file.filename);
+    }
   }
 
-  sendFile(request: MessageFileRequest) {
-    throw new AvailableInPlusVersion();
+  @Activity()
+  async sendImage(request: MessageImageRequest) {
+    const media = await this.getMedia(request.file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
   }
 
-  sendVoice(request: MessageVoiceRequest) {
-    throw new AvailableInPlusVersion();
+  @Activity()
+  async sendFile(request: MessageFileRequest) {
+    const media = await this.getMedia(request.file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
+  }
+
+  @Activity()
+  async sendVoice(request: MessageVoiceRequest) {
+    const media = await this.getMedia(request.file);
+    const options = this.getMessageOptions(request);
+    options.sendAudioAsVoice = true;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
+  }
+
+  @Activity()
+  async sendVideo(request: MessageVideoRequest) {
+    const media = await this.getMedia(request.file);
+    const options = this.getMessageOptions(request);
+    options.caption = request.caption;
+    return this.whatsapp.sendMessage(
+      this.ensureSuffix(request.chatId),
+      media,
+      options,
+    );
   }
 
   sendButtonsReply(request: MessageButtonReply) {
