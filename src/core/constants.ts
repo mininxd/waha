@@ -11,4 +11,4 @@ export const CHANGELOG_URL =
 /**
  * URL for supporting the WAHA project
  */
-export const SUPPORT_US_URL = 'https://waha.devlike.pro/support-us/';
+export const SUPPORT_US_URL = "https://ko-fi.com/mininxd/";

@@ -47,6 +47,7 @@ import { DOCS_URL } from './exceptions';
 import { getProxyConfig } from './helpers.proxy';
 import { MediaManager } from './media/MediaManager';
 import { LocalSessionAuthRepository } from './storage/LocalSessionAuthRepository';
+import { LocalSessionConfigRepository } from './storage/LocalSessionConfigRepository';
 import { LocalStoreCore } from './storage/LocalStoreCore';
 
 export class OnlyDefaultSessionIsAllowed extends UnprocessableEntityException {
@@ -105,6 +106,7 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
 
     this.store = new LocalStoreCore(engineName.toLowerCase());
     this.sessionAuthRepository = new LocalSessionAuthRepository(this.store);
+    this.sessionConfigRepository = new LocalSessionConfigRepository(this.store);
     this.clearStorage().catch((error) => {
       this.log.error({ error }, 'Error while clearing storage');
     });
@@ -165,6 +167,7 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
   async upsert(name: string, config?: SessionConfig): Promise<void> {
     this.onlyDefault(name);
     this.sessionConfig = config;
+    await this.sessionConfigRepository.saveConfig(name, config);
   }
 
   async start(name: string): Promise<SessionDTO> {
@@ -174,6 +177,11 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
         `Session '${this.DEFAULT}' is already started.`,
       );
     }
+
+    if (!this.sessionConfig) {
+      this.sessionConfig = await this.sessionConfigRepository.getConfig(name);
+    }
+
     this.log.info({ session: name }, `Starting session...`);
     const logger = this.log.logger.child({ session: name });
     logger.level = getPinoLogLevel(this.sessionConfig?.debug);
@@ -308,6 +316,7 @@ export class SessionManagerCore extends SessionManager implements OnModuleInit {
     this.session = DefaultSessionStatus.REMOVED;
     this.updateSession();
     this.sessionConfig = undefined;
+    await this.sessionConfigRepository.deleteConfig(name);
   }
 
   /**
