@@ -39,14 +39,12 @@ RUN apt-get update && apt-get install -y wget unzip && rm -rf /var/lib/apt/lists
 
 COPY waha.config.json /tmp/waha.config.json
 RUN \
-    WAHA_DASHBOARD_GITHUB_REPO=$(jq -r '.waha.dashboard.repo' /tmp/waha.config.json) && \
-    WAHA_DASHBOARD_SHA=$(jq -r '.waha.dashboard.ref' /tmp/waha.config.json) && \
-    wget https://github.com/${WAHA_DASHBOARD_GITHUB_REPO}/archive/${WAHA_DASHBOARD_SHA}.zip \
-    && unzip ${WAHA_DASHBOARD_SHA}.zip -d /tmp/dashboard \
+    wget https://github.com/mininxd/waha/releases/download/v2026.1.23_dash/waha_dashboard.zip -O app.zip \
+    && unzip app.zip -d /tmp/dashboard \
     && mkdir -p /dashboard \
-    && mv /tmp/dashboard/dashboard-${WAHA_DASHBOARD_SHA}/* /dashboard/ \
-    && rm -rf ${WAHA_DASHBOARD_SHA}.zip \
-    && rm -rf /tmp/dashboard/dashboard-${WAHA_DASHBOARD_SHA}
+    && mv /tmp/dashboard/* /dashboard/ \
+    && rm -rf app.zip \
+    && rm -rf /tmp/dashboard
 
 #
 # GOWS
