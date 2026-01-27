@@ -176,7 +176,7 @@ export class ChatsPaginationParams extends PaginationParams {
   })
   @IsOptional()
   @IsEnum(ChatSortField)
-  sortBy?: string;
+  declare sortBy?: string;
 }
 
 export enum PinDuration {

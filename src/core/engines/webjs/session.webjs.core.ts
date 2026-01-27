@@ -198,7 +198,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   private START_ATTEMPT_DELAY_SECONDS = 2;
 
   engine = WAHAEngine.WEBJS;
-  protected engineConfig?: WebJSConfig;
+  protected declare engineConfig?: WebJSConfig;
 
   private startDelayedJob: SingleDelayedJobRunner;
   private engineStateCheckDelayedJob: SingleDelayedJobRunner;

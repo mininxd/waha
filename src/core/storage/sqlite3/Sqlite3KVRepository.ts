@@ -7,7 +7,7 @@ import Knex from 'knex';
  * Key value repository with extra metadata
  */
 export class Sqlite3KVRepository<Entity> extends SqlKVRepository<Entity> {
-  protected knex: Knex.Knex;
+  protected declare knex: Knex.Knex;
   protected jsonQuery = new Sqlite3JsonQuery();
 
   constructor(knex: Knex.Knex) {

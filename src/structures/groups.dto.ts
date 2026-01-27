@@ -103,7 +103,7 @@ export class GroupsPaginationParams extends PaginationParams {
   })
   @IsOptional()
   @IsEnum(GroupSortField)
-  sortBy?: string;
+  declare sortBy?: string;
 }
 
 export enum GroupParticipantRole {

@@ -56,7 +56,7 @@ export class VoiceFileDTO extends FileDTO {
       process.env.WHATSAPP_SWAGGER_VIDEO_EXAMPLE_URL ||
       'https://github.com/devlikeapro/waha/raw/core/examples/voice.mp3',
   })
-  url?: string;
+  declare url?: string;
 }
 
 export class VideoFileDTO extends FileDTO {
@@ -64,5 +64,5 @@ export class VideoFileDTO extends FileDTO {
     description: 'The URL for the video file',
     example: 'https://github.com/devlikeapro/waha/raw/core/examples/video.mp4',
   })
-  url?: string;
+  declare url?: string;
 }

@@ -175,14 +175,14 @@ export class WAHAWebhookSessionStatus extends WAHAWebhook {
   })
   event = WAHAEvents.SESSION_STATUS;
 
-  payload: WASessionStatusBody;
+  declare payload: WASessionStatusBody;
 }
 
 export class WAHAWebhookMessage extends WAHAWebhook {
   @ApiProperty({ description: 'Incoming message.' })
   event = WAHAEvents.MESSAGE;
 
-  payload: WAMessage;
+  declare payload: WAMessage;
 }
 
 export class WAHAWebhookMessageReaction extends WAHAWebhook {
@@ -192,7 +192,7 @@ export class WAHAWebhookMessageReaction extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_REACTION;
 
-  payload: WAMessageReaction;
+  declare payload: WAMessageReaction;
 }
 
 export class WAHAWebhookMessageAny extends WAHAWebhook {
@@ -201,7 +201,7 @@ export class WAHAWebhookMessageAny extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_ANY;
 
-  payload: WAMessage;
+  declare payload: WAMessage;
 }
 
 export class WAHAWebhookMessageAck extends WAHAWebhook {
@@ -211,7 +211,7 @@ export class WAHAWebhookMessageAck extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_ACK;
 
-  payload: WAMessageAckBody;
+  declare payload: WAMessageAckBody;
 }
 
 export class WAHAWebhookMessageAckGroup extends WAHAWebhook {
@@ -221,7 +221,7 @@ export class WAHAWebhookMessageAckGroup extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_ACK_GROUP;
 
-  payload: WAMessageAckBody;
+  declare payload: WAMessageAckBody;
 }
 
 export class WAHAWebhookMessageRevoked extends WAHAWebhook {
@@ -232,7 +232,7 @@ export class WAHAWebhookMessageRevoked extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_REVOKED;
 
-  payload: WAMessageRevokedBody;
+  declare payload: WAMessageRevokedBody;
 }
 
 export class WAHAWebhookMessageEdited extends WAHAWebhook {
@@ -242,7 +242,7 @@ export class WAHAWebhookMessageEdited extends WAHAWebhook {
   })
   event = WAHAEvents.MESSAGE_EDITED;
 
-  payload: WAMessageEditedBody;
+  declare payload: WAMessageEditedBody;
 }
 
 export class WAHAWebhookStateChange extends WAHAWebhook {
@@ -252,7 +252,7 @@ export class WAHAWebhookStateChange extends WAHAWebhook {
   })
   event = WAHAEvents.STATE_CHANGE;
 
-  payload: any;
+  declare payload: any;
 }
 
 export class WAHAWebhookGroupJoin extends WAHAWebhook {
@@ -262,7 +262,7 @@ export class WAHAWebhookGroupJoin extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_JOIN;
 
-  payload: any;
+  declare payload: any;
 }
 
 export class WAHAWebhookGroupLeave extends WAHAWebhook {
@@ -272,7 +272,7 @@ export class WAHAWebhookGroupLeave extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_LEAVE;
 
-  payload: any;
+  declare payload: any;
 }
 
 export class WAHAWebhookPresenceUpdate extends WAHAWebhook {
@@ -281,7 +281,7 @@ export class WAHAWebhookPresenceUpdate extends WAHAWebhook {
   })
   event = WAHAEvents.PRESENCE_UPDATE;
 
-  payload: WAHAChatPresences;
+  declare payload: WAHAChatPresences;
 }
 
 export class WAHAWebhookPollVote extends WAHAWebhook {
@@ -290,7 +290,7 @@ export class WAHAWebhookPollVote extends WAHAWebhook {
   })
   event = WAHAEvents.POLL_VOTE;
 
-  payload: PollVotePayload;
+  declare payload: PollVotePayload;
 }
 
 export class WAHAWebhookPollVoteFailed extends WAHAWebhook {
@@ -301,7 +301,7 @@ export class WAHAWebhookPollVoteFailed extends WAHAWebhook {
   })
   event = WAHAEvents.POLL_VOTE_FAILED;
 
-  payload: PollVotePayload;
+  declare payload: PollVotePayload;
 }
 
 export class WAHAWebhookChatArchive extends WAHAWebhook {
@@ -311,7 +311,7 @@ export class WAHAWebhookChatArchive extends WAHAWebhook {
   })
   event = WAHAEvents.CHAT_ARCHIVE;
 
-  payload: ChatArchiveEvent;
+  declare payload: ChatArchiveEvent;
 }
 
 export class WAHAWebhookCallReceived extends WAHAWebhook {
@@ -321,7 +321,7 @@ export class WAHAWebhookCallReceived extends WAHAWebhook {
   })
   event = WAHAEvents.CALL_RECEIVED;
 
-  payload: CallData;
+  declare payload: CallData;
 }
 
 export class WAHAWebhookCallAccepted extends WAHAWebhook {
@@ -331,7 +331,7 @@ export class WAHAWebhookCallAccepted extends WAHAWebhook {
   })
   event = WAHAEvents.CALL_ACCEPTED;
 
-  payload: CallData;
+  declare payload: CallData;
 }
 
 export class WAHAWebhookCallRejected extends WAHAWebhook {
@@ -341,7 +341,7 @@ export class WAHAWebhookCallRejected extends WAHAWebhook {
   })
   event = WAHAEvents.CALL_REJECTED;
 
-  payload: CallData;
+  declare payload: CallData;
 }
 
 export class WAHAWebhookLabelUpsert extends WAHAWebhook {
@@ -350,7 +350,7 @@ export class WAHAWebhookLabelUpsert extends WAHAWebhook {
   })
   event = WAHAEvents.LABEL_UPSERT;
 
-  payload: Label;
+  declare payload: Label;
 }
 
 export class WAHAWebhookLabelDeleted extends WAHAWebhook {
@@ -359,7 +359,7 @@ export class WAHAWebhookLabelDeleted extends WAHAWebhook {
   })
   event = WAHAEvents.LABEL_DELETED;
 
-  payload: Label;
+  declare payload: Label;
 }
 
 export class WAHAWebhookLabelChatAdded extends WAHAWebhook {
@@ -368,7 +368,7 @@ export class WAHAWebhookLabelChatAdded extends WAHAWebhook {
   })
   event = WAHAEvents.LABEL_CHAT_ADDED;
 
-  payload: LabelChatAssociation;
+  declare payload: LabelChatAssociation;
 }
 
 export class WAHAWebhookLabelChatDeleted extends WAHAWebhook {
@@ -377,7 +377,7 @@ export class WAHAWebhookLabelChatDeleted extends WAHAWebhook {
   })
   event = WAHAEvents.LABEL_CHAT_DELETED;
 
-  payload: LabelChatAssociation;
+  declare payload: LabelChatAssociation;
 }
 
 export class EnginePayload {
@@ -391,7 +391,7 @@ export class WAHAWebhookEventResponse extends WAHAWebhook {
   })
   event = WAHAEvents.EVENT_RESPONSE;
 
-  payload: EventResponsePayload;
+  declare payload: EventResponsePayload;
 }
 
 export class WAHAWebhookEventResponseFailed extends WAHAWebhook {
@@ -401,7 +401,7 @@ export class WAHAWebhookEventResponseFailed extends WAHAWebhook {
   })
   event = WAHAEvents.EVENT_RESPONSE_FAILED;
 
-  payload: EventResponsePayload;
+  declare payload: EventResponsePayload;
 }
 
 export class WAHAWebhookEngineEvent extends WAHAWebhook {
@@ -410,5 +410,5 @@ export class WAHAWebhookEngineEvent extends WAHAWebhook {
   })
   event = WAHAEvents.ENGINE_EVENT;
 
-  payload: EnginePayload;
+  declare payload: EnginePayload;
 }

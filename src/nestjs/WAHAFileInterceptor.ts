@@ -7,7 +7,7 @@ import {
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { BinaryFile } from '@waha/structures/files.dto';
 import { Request } from 'express';
-import { fromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import { Observable } from 'rxjs';
 
 @Injectable()
@@ -74,7 +74,7 @@ export class WAHAFileInterceptor implements NestInterceptor {
       // Guess mimetype
       let mimetype = contentType.split(';')[0].trim();
       if (!mimetype || mimetype === 'application/octet-stream') {
-        const result = await fromBuffer(buffer);
+        const result = await fileTypeFromBuffer(buffer);
         if (result) {
           mimetype = result.mime;
         } else {

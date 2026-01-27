@@ -14,7 +14,7 @@ export class WebhookGroupV2Join extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_V2_JOIN;
 
-  payload: GroupV2JoinEvent;
+  declare payload: GroupV2JoinEvent;
 }
 
 export class WebhookGroupV2Leave extends WAHAWebhook {
@@ -23,7 +23,7 @@ export class WebhookGroupV2Leave extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_V2_LEAVE;
 
-  payload: GroupV2LeaveEvent;
+  declare payload: GroupV2LeaveEvent;
 }
 
 export class WebhookGroupV2Update extends WAHAWebhook {
@@ -32,7 +32,7 @@ export class WebhookGroupV2Update extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_V2_UPDATE;
 
-  payload: GroupV2UpdateEvent;
+  declare payload: GroupV2UpdateEvent;
 }
 
 export class WebhookGroupV2Participants extends WAHAWebhook {
@@ -41,5 +41,5 @@ export class WebhookGroupV2Participants extends WAHAWebhook {
   })
   event = WAHAEvents.GROUP_V2_PARTICIPANTS;
 
-  payload: GroupV2ParticipantsEvent;
+  declare payload: GroupV2ParticipantsEvent;
 }

@@ -54,12 +54,12 @@ export class App<T extends AllowedAppConfig = any> {
 
 export class ChatWootAppDto extends App<ChatWootAppConfig> {
   @Type(() => ChatWootAppConfig)
-  config: ChatWootAppConfig;
+  declare config: ChatWootAppConfig;
 }
 
 export class CallsAppDto extends App<CallsAppConfig> {
   @Type(() => CallsAppConfig)
-  config: CallsAppConfig;
+  declare config: CallsAppConfig;
 }
 
 export type AppDto = ChatWootAppDto | CallsAppDto;
