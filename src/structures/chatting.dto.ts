@@ -293,6 +293,7 @@ export class MessageLocationRequest extends ChatRequest {
 class FileRequest extends ChatRequest {
   @ApiProperty({
     oneOf: [
+      { type: 'string', format: 'binary' },
       { $ref: getSchemaPath(RemoteFile) },
       { $ref: getSchemaPath(BinaryFile) },
     ],
@@ -324,6 +325,7 @@ export class MessageFileRequest extends FileRequest {
 export class MessageVoiceRequest extends ChatRequest {
   @ApiProperty({
     oneOf: [
+      { type: 'string', format: 'binary' },
       { $ref: getSchemaPath(VoiceRemoteFile) },
       { $ref: getSchemaPath(VoiceBinaryFile) },
     ],
@@ -335,15 +337,13 @@ export class MessageVoiceRequest extends ChatRequest {
 
   @ConvertApiProperty()
   convert: boolean;
-
-  @ApiHideProperty()
-  mentions?: string[];
 }
 
 @ApiExtraModels(VideoRemoteFile, VideoBinaryFile)
 export class MessageVideoRequest extends ChatRequest {
   @ApiProperty({
     oneOf: [
+      { type: 'string', format: 'binary' },
       { $ref: getSchemaPath(VideoRemoteFile) },
       { $ref: getSchemaPath(VideoBinaryFile) },
     ],

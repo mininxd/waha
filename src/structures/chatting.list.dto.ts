@@ -90,7 +90,7 @@ export class SendListMessage {
 export class SendListRequest extends ChatRequest {
   @ChatIdProperty()
   @IsString()
-  declare chatId: string;
+  chatId: string;
 
   @ValidateNested()
   @Type(() => SendListMessage)

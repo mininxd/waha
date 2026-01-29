@@ -1,166 +1,87 @@
-import { CallHandler, ExecutionContext } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { lastValueFrom, of } from 'rxjs';
-import { Readable } from 'stream';
-
+import { CallHandler } from '@nestjs/common';
 import { WAHAFileInterceptor } from './WAHAFileInterceptor';
+import { of } from 'rxjs';
 
 describe('WAHAFileInterceptor', () => {
-  let interceptor: WAHAFileInterceptor;
+  let interceptor: any;
+  let context: any;
+  let next: CallHandler;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [WAHAFileInterceptor],
-    }).compile();
+    const InterceptorClass = WAHAFileInterceptor();
+    interceptor = new InterceptorClass();
 
-    interceptor = module.get<WAHAFileInterceptor>(WAHAFileInterceptor);
-  });
+    // Mock the internal fileFieldsInterceptor
+    interceptor.fileFieldsInterceptor = {
+        intercept: jest.fn().mockImplementation((ctx, nxt) => {
+            // Simulate parent interceptor calling handle
+            return nxt.handle();
+        })
+    };
 
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
-  it('should handle multipart request with "file" field', async () => {
-    const fileBuffer = Buffer.from('test file content');
-    const mockRequest = {
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary',
-      },
-      files: [
-        {
-          fieldname: 'file',
-          buffer: fileBuffer,
-          mimetype: 'text/plain',
-          originalname: 'test.txt',
+    context = {
+      switchToHttp: jest.fn().mockReturnThis(),
+      getRequest: jest.fn().mockReturnValue({
+        headers: {
+            'content-type': 'multipart/form-data; boundary=something'
         },
-      ],
-      body: {},
-    };
-
-    const mockContext = {
-      switchToHttp: () => ({
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ExecutionContext;
-
-    const mockNext: CallHandler = {
-      handle: () => of(null),
-    };
-
-    // Mock multipartInterceptor to verify it's called and proceed
-    (interceptor as any).multipartInterceptor = {
-      intercept: (context: any, next: any) => {
-        // In real execution, Multer would run here and populate req.files
-        // Here we simulated req.files already, so we just run the handler which calls processMultipart
-        return next.handle();
-      },
-    };
-
-    const obs = await interceptor.intercept(mockContext, mockNext);
-    await lastValueFrom(obs);
-
-    expect((mockRequest as any).body.file).toBeDefined();
-    expect((mockRequest as any).body.file.mimetype).toBe('text/plain');
-    expect((mockRequest as any).body.file.data).toBe(
-      fileBuffer.toString('base64'),
-    );
-    expect((mockRequest as any).body.file.filename).toBe('test.txt');
-  });
-
-  it('should handle multipart request with "files" field', async () => {
-    const fileBuffer = Buffer.from('test file content');
-    const mockRequest = {
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary',
-      },
-      files: [
-        {
-          fieldname: 'files',
-          buffer: fileBuffer,
-          mimetype: 'text/plain',
-          originalname: 'test.txt',
+        files: {
+            file: [{
+                mimetype: 'image/png',
+                originalname: 'test.png',
+                buffer: Buffer.from('test')
+            }]
         },
-      ],
-      body: {},
-    };
-
-    const mockContext = {
-      switchToHttp: () => ({
-        getRequest: () => mockRequest,
+        body: {}
       }),
-    } as unknown as ExecutionContext;
-
-    const mockNext: CallHandler = {
-      handle: () => of(null),
     };
 
-    (interceptor as any).multipartInterceptor = {
-      intercept: (context: any, next: any) => {
-        return next.handle();
-      },
+    next = {
+      handle: jest.fn().mockReturnValue(of('test')),
     };
-
-    const obs = await interceptor.intercept(mockContext, mockNext);
-    await lastValueFrom(obs);
-
-    expect((mockRequest as any).body.file).toBeDefined();
-    expect((mockRequest as any).body.file.filename).toBe('test.txt');
   });
 
-  it('should handle raw body request', async () => {
-    const fileBuffer = Buffer.from('raw file content');
-    const mockRequest = new Readable();
-    (mockRequest as any).headers = {
-      'content-type': 'application/octet-stream',
-    };
-    mockRequest.push(fileBuffer);
-    mockRequest.push(null);
-    (mockRequest as any).body = {};
+  it('should transform file to body', async () => {
+    const observable = await interceptor.intercept(context, next);
+    observable.subscribe();
 
-    const mockContext = {
-      switchToHttp: () => ({
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ExecutionContext;
-
-    const mockNext: CallHandler = {
-      handle: () => of(null),
-    };
-
-    const obs = await interceptor.intercept(mockContext, mockNext);
-    await lastValueFrom(obs);
-
-    expect((mockRequest as any).body.file).toBeDefined();
-    expect((mockRequest as any).body.file.mimetype).toBe(
-      'application/octet-stream',
-    );
-    expect((mockRequest as any).body.file.data).toBe(
-      fileBuffer.toString('base64'),
-    );
+    const req = context.switchToHttp().getRequest();
+    expect(req.body.file).toBeDefined();
+    expect(req.body.file.mimetype).toBe('image/png');
+    expect(req.body.file.filename).toBe('test.png');
+    expect(req.body.file.data).toBe(Buffer.from('test').toString('base64'));
   });
 
-  it('should ignore JSON requests', async () => {
-    const mockRequest = {
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: { some: 'json' },
-    };
+  it('should handle "files" field', async () => {
+      const req = context.switchToHttp().getRequest();
+      req.files = {
+          files: [{
+                mimetype: 'image/jpeg',
+                originalname: 'test.jpg',
+                buffer: Buffer.from('test2')
+          }]
+      };
 
-    const mockContext = {
-      switchToHttp: () => ({
-        getRequest: () => mockRequest,
-      }),
-    } as unknown as ExecutionContext;
+    const observable = await interceptor.intercept(context, next);
+    observable.subscribe();
 
-    const mockNext: CallHandler = {
-      handle: () => of(null),
-    };
+    expect(req.body.file).toBeDefined();
+    expect(req.body.file.mimetype).toBe('image/jpeg');
+    expect(req.body.file.filename).toBe('test.jpg');
+    expect(req.body.file.data).toBe(Buffer.from('test2').toString('base64'));
+  });
 
-    const obs = await interceptor.intercept(mockContext, mockNext);
-    await lastValueFrom(obs);
+  it('should use fileFieldsInterceptor if files are not present', async () => {
+    const req = context.switchToHttp().getRequest();
+    delete req.files; // Simulate no middleware
 
-    expect((mockRequest as any).body.file).toBeUndefined();
+    await interceptor.intercept(context, next);
+    expect(interceptor.fileFieldsInterceptor.intercept).toHaveBeenCalled();
+  });
+
+  it('should NOT use fileFieldsInterceptor if files are present', async () => {
+    // req.files is present from beforeEach
+    await interceptor.intercept(context, next);
+    expect(interceptor.fileFieldsInterceptor.intercept).not.toHaveBeenCalled();
   });
 });
-

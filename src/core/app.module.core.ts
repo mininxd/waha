@@ -1,6 +1,11 @@
 import * as process from 'node:process';
 
-import { INestApplication, MiddlewareConsumer, Module } from '@nestjs/common';
+import {
+  INestApplication,
+  MiddlewareConsumer,
+  Module,
+  RequestMethod,
+} from '@nestjs/common';
 import { Provider } from '@nestjs/common/interfaces/modules/provider.interface';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -9,15 +14,16 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { TerminusModule } from '@nestjs/terminus';
 import { ChannelsController } from '@waha/api/channels.controller';
 import { LidsController } from '@waha/api/lids.controller';
+import { ApiKeysController } from '@waha/api/apikeys.controller';
 import { ProfileController } from '@waha/api/profile.controller';
 import { ServerController } from '@waha/api/server.controller';
 import { ServerDebugController } from '@waha/api/server.debug.controller';
 import { WebsocketGatewayCore } from '@waha/api/websocket.gateway.core';
 import { AppsModuleExports } from '@waha/apps/apps.module';
-import { ContactsSessionController } from '@waha/contacts.session.controller';
+import { ContactsSessionController } from '@waha/api/contacts.session.controller';
 import { ApiKeyStrategy } from '@waha/core/auth/apiKey.strategy';
 import { IApiKeyAuth } from '@waha/core/auth/auth';
-import { AuthMiddleware } from '@waha/core/auth/auth.middleware';
+import { ApiKeyAuthMiddleware } from '@waha/core/auth/api-key-auth.middleware';
 import { BasicAuthFunction } from '@waha/core/auth/basicAuth';
 import { WebSocketAuth } from '@waha/core/auth/WebSocketAuth';
 import { GowsEngineConfigService } from '@waha/core/config/GowsEngineConfigService';
@@ -28,6 +34,7 @@ import { ChannelsInfoServiceCore } from '@waha/core/services/ChannelsInfoService
 import { parseBool } from '@waha/helpers';
 import { BufferJsonReplacerInterceptor } from '@waha/nestjs/BufferJsonReplacerInterceptor';
 import { HttpsExpress } from '@waha/nestjs/HttpsExpress';
+import { MultipartMiddleware } from '@waha/nestjs/MultipartMiddleware';
 import {
   getPinoHttpUseLevel,
   getPinoLogLevel,
@@ -64,6 +71,9 @@ import { EngineConfigService } from './config/EngineConfigService';
 import { SwaggerConfigServiceCore } from './config/SwaggerConfigServiceCore';
 import { WAHAHealthCheckServiceCore } from './health/WAHAHealthCheckServiceCore';
 import { SessionManagerCore } from './manager.core';
+import { CaslAbilityFactory } from '@waha/core/auth/casl.ability';
+import { PoliciesGuard } from '@waha/core/auth/policies.guard';
+import { ApiKeyService } from '@waha/core/auth/ApiKeyService';
 
 export const IMPORTS_CORE = [
   ...AppsModuleExports.imports,
@@ -140,6 +150,7 @@ const IMPORTS = [...IMPORTS_CORE, ...IMPORTS_MEDIA];
 
 export const CONTROLLERS = [
   AuthController,
+  ApiKeysController,
   SessionsController,
   ProfileController,
   ChattingController,
@@ -178,6 +189,9 @@ export const PROVIDERS_BASE: Provider[] = [
   MediaLocalStorageConfig,
   WebSocketAuth,
   ApiKeyStrategy,
+  ApiKeyService,
+  CaslAbilityFactory,
+  PoliciesGuard,
   {
     provide: IApiKeyAuth,
     useFactory: ApiKeyAuthFactory,
@@ -234,11 +248,15 @@ export class AppModuleCore {
   }
 
   configure(consumer: MiddlewareConsumer) {
+    // Because we use ServeStaticModule, we need to inject a middleware
+    // ServeStaticModule does not support @UseGuards
     const exclude = this.config.getExcludedPaths();
     consumer
-      .apply(AuthMiddleware)
+      .apply(ApiKeyAuthMiddleware)
       .exclude(...exclude)
-      .forRoutes('api', 'health', 'ws');
+      .forRoutes('api', 'health');
+
+    // Dashboard
     const dashboardCredentials = this.dashboardConfig.credentials;
     if (dashboardCredentials) {
       const username = dashboardCredentials[0];
@@ -247,5 +265,12 @@ export class AppModuleCore {
         .apply(BasicAuthFunction(username, password))
         .forRoutes('dashboard');
     }
+
+    consumer.apply(MultipartMiddleware).forRoutes(
+      { path: '/api/sendImage', method: RequestMethod.POST },
+      { path: '/api/sendFile', method: RequestMethod.POST },
+      { path: '/api/sendVoice', method: RequestMethod.POST },
+      { path: '/api/sendVideo', method: RequestMethod.POST },
+    );
   }
 }

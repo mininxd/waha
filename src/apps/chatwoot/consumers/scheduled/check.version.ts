@@ -87,7 +87,7 @@ export class CheckVersionConsumer extends ChatWootScheduledConsumer {
 
   private async fetchLatestVersion(logger: ILogger): Promise<string> {
     const response = await axios.get(
-      'https://api.github.com/repos/mininxd/waha/releases/latest',
+      'https://api.github.com/repos/devlikeapro/waha/releases/latest',
     );
     const latestVersion = response.data.name;
     logger.info(`Latest WAHA version: ${latestVersion}`);

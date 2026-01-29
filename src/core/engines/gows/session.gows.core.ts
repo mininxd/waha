@@ -85,7 +85,6 @@ import {
   MessageReactionRequest,
   MessageReplyRequest,
   MessageTextRequest,
-  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -125,7 +124,11 @@ import {
   WAMessageReaction,
 } from '@waha/structures/responses.dto';
 import { CallData } from '@waha/structures/calls.dto';
-import { MeInfo, ProxyConfig } from '@waha/structures/sessions.dto';
+import {
+  MeInfo,
+  ProxyConfig,
+  SessionConfig,
+} from '@waha/structures/sessions.dto';
 import {
   BROADCAST_ID,
   DeleteStatusRequest,
@@ -175,8 +178,8 @@ import {
   isLabelUpsertEvent,
 } from './labels.gows';
 import {
-  GetEventStreamClient,
-  GetMessageServiceClient,
+  BuildEventStreamClient,
+  BuildMessageServiceClient,
 } from '@waha/core/engines/gows/clients';
 import esm from '@waha/vendor/esm';
 import { IsEditedMessage } from '@waha/core/utils/pwa';
@@ -188,6 +191,19 @@ import { TmpDir } from '@waha/utils/tmpdir';
 import * as path from 'path';
 import MessageServiceClient = messages.MessageServiceClient;
 import * as fsp from 'fs/promises';
+
+function getGowsStorageConfig(
+  sessionConfig?: SessionConfig,
+): messages.SessionStorageConfig {
+  const storeConfig = sessionConfig?.gows?.storage;
+  return new messages.SessionStorageConfig({
+    // Only explicit false disables; undefined/null defaults to enabled.
+    messages: storeConfig?.messages !== false,
+    groups: storeConfig?.groups !== false,
+    chats: storeConfig?.chats !== false,
+    labels: storeConfig?.labels !== false,
+  });
+}
 
 enum WhatsMeowEvent {
   CONNECTED = 'gows.ConnectedEventData',
@@ -217,6 +233,10 @@ enum WhatsMeowEvent {
   CALL_REJECT = 'events.CallReject',
   CALL_TERMINATE = 'events.CallTerminate',
   CALL_OFFER_NOTICE = 'events.CallOfferNotice',
+  // Other
+  APP_STATE = 'events.AppState',
+  HISTORY_SYNC = 'events.HistorySync',
+  CONTACT = 'events.Contact',
 }
 
 export interface GowsConfig {
@@ -268,6 +288,7 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
           address: auth.address(),
           dialect: auth.dialect(),
         }),
+        storage: getGowsStorageConfig(this.sessionConfig),
         log: new messages.SessionLogConfig({
           level: level ?? messages.LogLevel.INFO,
         }),
@@ -283,8 +304,7 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
       }),
     });
 
-    this.client = GetMessageServiceClient(
-      this.name,
+    this.client = BuildMessageServiceClient(
       this.engineConfig.connection,
       grpc.credentials.createInsecure(),
     );
@@ -311,12 +331,23 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
     this.stream$ = new GowsEventStreamObservable(
       this.loggerBuilder.child({ grpc: 'stream' }),
       () => {
-        const client = GetEventStreamClient(
-          this.name,
+        const client = BuildEventStreamClient(
           this.engineConfig.connection,
           grpc.credentials.createInsecure(),
         );
-        const stream = client.StreamEvents(this.session);
+        // Avoid having a lot of events after pairing the device
+        // https://github.com/devlikeapro/waha/issues/1826
+        // TODO: we need to make it more dynamic
+        const exclude = [
+          WhatsMeowEvent.APP_STATE,
+          WhatsMeowEvent.HISTORY_SYNC,
+          WhatsMeowEvent.CONTACT,
+        ];
+        const request = new messages.StreamEventsRequest({
+          session: this.session,
+          exclude: exclude,
+        });
+        const stream = client.StreamEvents(request);
         return { client, stream };
       },
     );
@@ -861,11 +892,11 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
   }
 
   protected setProfilePicture(file: BinaryFile | RemoteFile): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   protected deleteProfilePicture(): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   /**
@@ -960,11 +991,11 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
   }
 
   sendPollVote(request: MessagePollVoteRequest) {
-    throw new AvailableInPlusVersion('Poll voting');
+    throw new NotImplementedByEngineError();
   }
 
   sendList(request: SendListRequest): Promise<any> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   @Activity()
@@ -1081,81 +1112,22 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
     throw new NotImplementedByEngineError();
   }
 
-  protected async getMedia(
-    file: BinaryFile | RemoteFile,
-  ): Promise<{ content: Uint8Array; mimetype: string; filename?: string }> {
-    let content: Buffer;
-    if ('url' in file) {
-      content = await this.fetch(file.url);
-    } else {
-      content = Buffer.from(file.data, 'base64');
-    }
-    return {
-      content: content,
-      mimetype: file.mimetype,
-      filename: file.filename,
-    };
+  sendImage(request: MessageImageRequest) {
+    throw new NotImplementedByEngineError();
   }
 
-  protected async sendMedia(
-    request:
-      | MessageImageRequest
-      | MessageFileRequest
-      | MessageVoiceRequest
-      | MessageVideoRequest,
-    type: messages.MediaType,
-  ) {
-    const jid = toJID(this.ensureSuffix(request.chatId));
-    const { content, mimetype, filename } = await this.getMedia(request.file);
-    const media = new messages.Media({
-      content: content,
-      type: type,
-      mimetype: mimetype,
-      filename: filename,
-    });
-    // @ts-ignore
-    const text = request.caption;
-    const message = new messages.MessageRequest({
-      jid: jid,
-      session: this.session,
-      media: media,
-      text: text,
-      replyTo: getMessageIdFromSerialized(request.reply_to),
-      mentions: request.mentions?.map((mention) => toJID(mention)),
-    });
-    const response = await promisify(this.client.SendMessage)(message);
-    const data = response.toObject();
-    return this.messageResponse(jid, data);
+  sendFile(request: MessageFileRequest) {
+    throw new NotImplementedByEngineError();
   }
 
-  @Activity()
-  async sendImage(request: MessageImageRequest) {
-    return this.sendMedia(request, messages.MediaType.IMAGE);
-  }
-
-  @Activity()
-  async sendFile(request: MessageFileRequest) {
-    return this.sendMedia(request, messages.MediaType.DOCUMENT);
-  }
-
-  @Activity()
-  async sendVoice(request: MessageVoiceRequest) {
-    return this.sendMedia(request, messages.MediaType.AUDIO);
-  }
-
-  @Activity()
-  async sendVideo(request: MessageVideoRequest) {
-    let type = messages.MediaType.VIDEO;
-    if (request.asNote) {
-      type = messages.MediaType.PTV;
-    }
-    return this.sendMedia(request, type);
+  sendVoice(request: MessageVoiceRequest) {
+    throw new NotImplementedByEngineError();
   }
 
   sendLinkCustomPreview(
     request: MessageLinkCustomPreviewRequest,
   ): Promise<any> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   @Activity()
@@ -1623,20 +1595,20 @@ export class WhatsappSessionGoWSCore extends WhatsappSession {
   public searchChannelsByView(
     query: ChannelSearchByView,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   public searchChannelsByText(
     query: ChannelSearchByText,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   public async previewChannelMessages(
     inviteCode: string,
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   protected toChannel(newsletter: messages.Newsletter): Channel {

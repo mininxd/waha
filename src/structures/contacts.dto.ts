@@ -42,7 +42,7 @@ export class ContactsPaginationParams extends PaginationParams {
   })
   @IsOptional()
   @IsEnum(ContactSortField)
-  declare sortBy?: string;
+  sortBy?: string;
 }
 
 /**

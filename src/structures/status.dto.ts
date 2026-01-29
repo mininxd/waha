@@ -90,8 +90,8 @@ export class DeleteStatusRequest extends StatusRequest {
     description: 'Status message id to delete',
     example: 'AAAAAAAAAAAAAAAAA',
   })
-  declare id: string;
+  id: string;
 
   @ContactsProperty
-  declare contacts?: string[];
+  contacts?: string[];
 }

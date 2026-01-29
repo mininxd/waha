@@ -1,4 +1,4 @@
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { Injectable, Optional } from '@nestjs/common';
 import Redis from 'ioredis';
 import { InjectPinoLogger } from 'nestjs-pino';
@@ -14,13 +14,12 @@ export class RMutexService {
   private readonly client: RMutexClient;
 
   constructor(
-    private readonly redisService: RedisService,
+    @InjectRedis() private readonly redis: Redis,
     @InjectPinoLogger('RMutexService') private readonly logger: Logger,
     @Optional() ttl?: number,
   ) {
-    const redis = this.redisService.getOrThrow(); // Get the default Redis instance
     this.ttl = ttl || 60_000;
-    this.client = new RedisMutexClient(redis, this.logger);
+    this.client = new RedisMutexClient(this.redis, this.logger);
   }
 
   /**

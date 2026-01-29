@@ -78,7 +78,6 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
-  MessageVideoRequest,
   MessageVoiceRequest,
   SendSeenRequest,
   WANumberExistResult,
@@ -166,6 +165,7 @@ import {
   MessageMedia,
   Reaction,
   WAState,
+  Buttons,
 } from 'whatsapp-web.js';
 import {
   Message as MessageInstance,
@@ -198,7 +198,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   private START_ATTEMPT_DELAY_SECONDS = 2;
 
   engine = WAHAEngine.WEBJS;
-  protected declare engineConfig?: WebJSConfig;
+  protected engineConfig?: WebJSConfig;
 
   private startDelayedJob: SingleDelayedJobRunner;
   private engineStateCheckDelayedJob: SingleDelayedJobRunner;
@@ -415,6 +415,9 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   protected failed() {
+    if (!this.shouldRestart) {
+      return;
+    }
     // We'll restart the client if it's in the process of unpairing
     this.status = WAHASessionStatus.FAILED;
     this.restartClient();
@@ -708,12 +711,15 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     return true;
   }
 
-  protected setProfilePicture(file: BinaryFile | RemoteFile): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+  protected async setProfilePicture(
+    file: BinaryFile | RemoteFile,
+  ): Promise<boolean> {
+    const media = await this.getMedia(file);
+    return await this.whatsapp.setProfilePicture(media);
   }
 
-  protected deleteProfilePicture(): Promise<boolean> {
-    throw new AvailableInPlusVersion();
+  protected async deleteProfilePicture(): Promise<boolean> {
+    return await this.whatsapp.deleteProfilePicture();
   }
 
   /**
@@ -806,20 +812,6 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  protected async getMedia(
-    file: BinaryFile | RemoteFile,
-  ): Promise<MessageMedia> {
-    if ('url' in file) {
-      return await MessageMedia.fromUrl(file.url, {
-        unsafeMime: true,
-        filename: file.filename,
-      });
-    } else {
-      return new MessageMedia(file.mimetype, file.data, file.filename);
-    }
-  }
-
-  @Activity()
   async sendImage(request: MessageImageRequest) {
     const media = await this.getMedia(request.file);
     const options = this.getMessageOptions(request);
@@ -831,7 +823,6 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  @Activity()
   async sendFile(request: MessageFileRequest) {
     const media = await this.getMedia(request.file);
     const options = this.getMessageOptions(request);
@@ -843,7 +834,6 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  @Activity()
   async sendVoice(request: MessageVoiceRequest) {
     const media = await this.getMedia(request.file);
     const options = this.getMessageOptions(request);
@@ -855,20 +845,22 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
     );
   }
 
-  @Activity()
-  async sendVideo(request: MessageVideoRequest) {
-    const media = await this.getMedia(request.file);
-    const options = this.getMessageOptions(request);
-    options.caption = request.caption;
-    return this.whatsapp.sendMessage(
-      this.ensureSuffix(request.chatId),
-      media,
-      options,
-    );
+  async sendButtonsReply(request: MessageButtonReply) {
+    // There is no easy way to send buttons reply in WEBJS
+    // You can try to use client.selectButton(buttonId) if you have the message object
+    // But here we only have the button ID and maybe chatId
+    throw new NotImplementedByEngineError('Sending button reply is not supported by WEBJS');
   }
 
-  sendButtonsReply(request: MessageButtonReply) {
-    throw new AvailableInPlusVersion();
+  private async getMedia(file: BinaryFile | RemoteFile): Promise<MessageMedia> {
+    if ('url' in file) {
+      const buffer = await this.fetch(file.url);
+      const b64 = buffer.toString('base64');
+      return new MessageMedia(file.mimetype, b64, file.filename);
+    } else if ('data' in file) {
+      return new MessageMedia(file.mimetype, file.data, file.filename);
+    }
+    throw new UnprocessableEntityException('File must have url or data');
   }
 
   @Activity()
@@ -1430,20 +1422,20 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   public searchChannelsByView(
     query: ChannelSearchByView,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channels search is not implemented in WEBJS');
   }
 
   public searchChannelsByText(
     query: ChannelSearchByText,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channels search is not implemented in WEBJS');
   }
 
   public async previewChannelMessages(
     inviteCode: string,
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channel preview is not implemented in WEBJS');
   }
 
   protected ChatToChannel(chat: WEBJSChannel): Channel {

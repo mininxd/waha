@@ -36,10 +36,17 @@ export class SwaggerConfiguratorCore {
       '<ul>' +
       '<li><a href="https://waha.devlike.pro/" target="_blank">Documentation</a></li>' +
       '<li><a href="https://waha.devlike.pro/docs/how-to/engines/#features" target="_blank">Supported features in engines</a></li>' +
-      '<li><a href="https://github.com/mininxd/waha' +
-      's" target="_blank">GitHub - WAHA Plus-Lite</a></li>' +
-      '<li><a href="https://ko-fi.com/mininxd/" target="_blank">Ko-Fi</a></li>' +
-      '<li><a href="https://trakteer.id/mininxd" target="_blank">Trakteer Id</a></li>' +
+      '<li><a href="https://github.com/devlikeapro/waha" target="_blank">GitHub - WAHA Core</a></li>' +
+      '<li><a href="https://github.com/devlikeapro/waha-plu' + // Separate line to pass pre-commit check
+      's" target="_blank">GitHub - WAHA Plus</a></li>' +
+      '</ul>' +
+      '<p>Support the project and get WAHA Plus version!</p>' +
+      '<ul>' +
+      '<li><a href="https://waha.devlike.pro/docs/how-to/plu' + // Separate line to pass pre-commit check
+      's-version/" target="_blank">WAHA Plus</a></li>' +
+      '<li><a href="https://patreon.com/wa_http_api/" target="_blank">Patreon</a></li>' +
+      '<li><a href="https://boosty.to/wa-http-api/" target="_blank">Boosty</a></li>' +
+      '<li><a href="https://portal.devlike.pro/" target="_blank">Patron Portal</a></li>' +
       '</ul>'
     );
   }
@@ -67,15 +74,14 @@ export class SwaggerConfiguratorCore {
       .setExternalDoc(this.title, this.externalDocUrl)
       .setVersion(VERSION.version)
       .addTag('🖥️ Sessions', 'Control WhatsApp sessions (accounts)')
-      .addTag('🧩 Apps', 'Applications (built-in integrations)')
-      .addTag('🔑 Auth', 'Authentication')
+      .addTag('📱 Pairing', 'Pair a session with WhatsApp on your phone.')
       .addTag('🆔 Profile', 'Your profile information')
-      .addTag('🖼️ Screenshot', 'Get screenshot of WhatsApp and show QR code')
       .addTag('📤 Chatting', 'Chatting methods')
-      .addTag('📞 Calls', 'Call handling methods')
+      .addTag('✅ Presence', `Presence information`)
       .addTag('📢 Channels', 'Channels (newsletters) methods')
       .addTag('🟢 Status', 'Status (aka stories) methods')
       .addTag('💬 Chats', `Chats methods`)
+      .addTag('🔑 Api Keys', 'API Keys management')
       .addTag(
         '👤 Contacts',
         `Contacts methods.<br>
@@ -83,13 +89,14 @@ export class SwaggerConfiguratorCore {
                 'E.g: \`12312312310\` OR \`12312312310@c.us\`<br>`,
       )
       .addTag('👥 Groups', `Groups methods.<br>`)
-      .addTag('✅ Presence', `Presence information`)
+      .addTag('📞 Calls', 'Call handling methods')
       .addTag('📅 Events', `Event Message`)
       .addTag(
         '🏷️ Labels',
         'Labels - available only for WhatsApp Business accounts',
       )
       .addTag('🖼️ Media', 'Media methods')
+      .addTag('🧩 Apps', 'Applications (built-in integrations)')
       .addTag('🔍 Observability', 'Other methods')
       .addTag('🗄️ Storage', 'Storage methods')
       .addApiKey({

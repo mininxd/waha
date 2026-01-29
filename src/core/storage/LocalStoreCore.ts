@@ -1,5 +1,6 @@
 import { safeJoin } from '@waha/utils/files';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import Knex from 'knex';
 import * as path from 'path';
 
@@ -8,7 +9,7 @@ import { KNEX_SQLITE_CLIENT } from '@waha/core/env';
 import { getSessionStorePath } from '@waha/core/config/session-store';
 
 export class LocalStoreCore extends LocalStore {
-  protected readonly baseDirectory: string = getSessionStorePath();
+  protected readonly baseDirectory: string;
 
   private readonly engine: string;
   private knex: Knex.Knex;
@@ -16,6 +17,7 @@ export class LocalStoreCore extends LocalStore {
   constructor(engine: string) {
     super();
     this.engine = engine;
+    this.baseDirectory = getSessionStorePath();
   }
 
   async init(sessionName?: string) {

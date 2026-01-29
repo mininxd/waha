@@ -114,8 +114,8 @@ import {
   MessageReplyRequest,
   MessageStarRequest,
   MessageTextRequest,
-  MessageVideoRequest,
   MessageVoiceRequest,
+  MessageVideoRequest,
   SendSeenRequest,
   WANumberExistResult,
 } from '@waha/structures/chatting.dto';
@@ -612,6 +612,9 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   }
 
   protected async failed() {
+    if (!this.shouldRestart) {
+      return;
+    }
     this.shouldRestart = false;
     this.startDelayedJob.cancel();
     this.autoRestartJob.stop();
@@ -1013,74 +1016,82 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
     return await this.sock.sendMessage(request.chatId, message, options);
   }
 
-  protected async getMedia(file: BinaryFile | RemoteFile): Promise<any> {
-    if ('url' in file) {
-      return { url: file.url };
-    } else {
-      return Buffer.from(file.data, 'base64');
-    }
-  }
-
-  @Activity()
   async sendImage(request: MessageImageRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
     const media = await this.getMedia(request.file);
-    const options = await this.getMessageOptions(request);
     const message = {
       image: media,
       caption: request.caption,
       mentions: request.mentions?.map(toJID),
     };
+    const options = await this.getMessageOptions(request);
     return this.sock.sendMessage(chatId, message, options);
   }
 
-  @Activity()
   async sendFile(request: MessageFileRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
     const media = await this.getMedia(request.file);
-    const options = await this.getMessageOptions(request);
     const message = {
       document: media,
       caption: request.caption,
-      mentions: request.mentions?.map(toJID),
       mimetype: request.file.mimetype,
       fileName: request.file.filename,
     };
+    const options = await this.getMessageOptions(request);
     return this.sock.sendMessage(chatId, message, options);
   }
 
-  @Activity()
   async sendVoice(request: MessageVoiceRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
     const media = await this.getMedia(request.file);
-    const options = await this.getMessageOptions(request);
     const message = {
       audio: media,
+      mimetype: request.file.mimetype || 'audio/ogg; codecs=opus',
       ptt: true,
-      mentions: request.mentions?.map(toJID),
-      mimetype: 'audio/ogg; codecs=opus',
     };
+    const options = await this.getMessageOptions(request);
     return this.sock.sendMessage(chatId, message, options);
   }
 
-  @Activity()
   async sendVideo(request: MessageVideoRequest) {
     const chatId = toJID(this.ensureSuffix(request.chatId));
     const media = await this.getMedia(request.file);
-    const options = await this.getMessageOptions(request);
     const message = {
       video: media,
       caption: request.caption,
-      mentions: request.mentions?.map(toJID),
-      ptv: request.asNote,
+      mimetype: request.file.mimetype,
     };
+    const options = await this.getMessageOptions(request);
     return this.sock.sendMessage(chatId, message, options);
   }
 
-  sendLinkCustomPreview(
+  async sendLinkCustomPreview(
     request: MessageLinkCustomPreviewRequest,
   ): Promise<any> {
-    throw new AvailableInPlusVersion();
+    const chatId = toJID(this.ensureSuffix(request.chatId));
+    const preview = request.preview;
+    const text = request.text;
+
+    let thumbnail: Buffer | undefined;
+    if (preview.image) {
+      if ('data' in preview.image) {
+        thumbnail = Buffer.from(preview.image.data, 'base64');
+      } else if ('url' in preview.image) {
+        thumbnail = await this.fetch(preview.image.url);
+      }
+    }
+
+    const message = {
+      text: text,
+      matchedText: preview.url,
+      canonicalUrl: preview.url,
+      title: preview.title,
+      description: preview.description,
+      jpegThumbnail: thumbnail,
+    };
+
+    const options = await this.getMessageOptions(request);
+    return this.sock.sendMessage(chatId, message, options);
   }
 
   protected async uploadMedia(
@@ -1091,6 +1102,15 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
       return undefined;
     }
     return this.getMedia(file);
+  }
+
+  private async getMedia(file: BinaryFile | RemoteFile) {
+    if ('url' in file) {
+      return { url: file.url };
+    } else if ('data' in file) {
+      return Buffer.from(file.data, 'base64');
+    }
+    throw new UnprocessableEntityException('File must have url or data');
   }
 
   @Activity()
@@ -1109,7 +1129,7 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   }
 
   sendList(request: SendListRequest): Promise<any> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Send list is not implemented in Core');
   }
 
   @Activity()
@@ -1943,20 +1963,20 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   public searchChannelsByView(
     query: ChannelSearchByView,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channels search is not implemented');
   }
 
   public searchChannelsByText(
     query: ChannelSearchByText,
   ): Promise<ChannelListResult> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channels search is not implemented');
   }
 
   public async previewChannelMessages(
     inviteCode: string,
     query: PreviewChannelMessages,
   ): Promise<ChannelMessage[]> {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError('Channel preview is not implemented');
   }
 
   protected toChannel(newsletter: NOWEBNewsletterMetadata): Channel {

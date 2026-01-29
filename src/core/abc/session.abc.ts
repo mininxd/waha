@@ -372,7 +372,6 @@ export abstract class WhatsappSession {
     // https://www.bannerbear.com/blog/ways-to-speed-up-puppeteer-screenshots/
     return [
       '--disable-accelerated-2d-canvas',
-      '--disable-accelerated-video-decode',
       '--disable-application-cache',
       // DO NOT disable software rasterizer, it will break the video
       // https://github.com/devlikeapro/waha/issues/629
@@ -382,11 +381,9 @@ export abstract class WhatsappSession {
       '--disable-default-apps',
       '--disable-dev-shm-usage',
       '--disable-extensions',
-      '--disable-features=AudioServiceOutOfProcess',
       '--disable-metrics',
       // '--disable-features=site-per-process', // COMMENTED to test WEBJS stability
       '--disable-gpu', // COMMENTED to test WEBJS stability
-      '--disable-gpu-sandbox',
       '--disable-offer-store-unmasked-wallet-cards',
       '--disable-offline-load-stale-cache',
       '--disable-popup-blocking',
@@ -1129,15 +1126,15 @@ export abstract class WhatsappSession {
   }
 
   public sendImageStatus(status: ImageStatus) {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   public sendVoiceStatus(status: VoiceStatus) {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   public sendVideoStatus(status: VideoStatus) {
-    throw new AvailableInPlusVersion();
+    throw new NotImplementedByEngineError();
   }
 
   public deleteStatus(request: DeleteStatusRequest) {
