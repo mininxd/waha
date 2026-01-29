@@ -612,6 +612,9 @@ export class WhatsappSessionNoWebCore extends WhatsappSession {
   }
 
   protected async failed() {
+    if (!this.shouldRestart) {
+      return;
+    }
     this.shouldRestart = false;
     this.startDelayedJob.cancel();
     this.autoRestartJob.stop();

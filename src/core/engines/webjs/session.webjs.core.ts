@@ -414,6 +414,9 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
   }
 
   protected failed() {
+    if (!this.shouldRestart) {
+      return;
+    }
     // We'll restart the client if it's in the process of unpairing
     this.status = WAHASessionStatus.FAILED;
     this.restartClient();
