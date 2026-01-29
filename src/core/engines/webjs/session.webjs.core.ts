@@ -186,6 +186,7 @@ import {
   WAHA_CLIENT_BROWSER_NAME,
   WAHA_CLIENT_DEVICE_NAME,
 } from '@waha/core/env';
+import { getSessionStorePath } from '@waha/core/config/session-store';
 
 export interface WebJSConfig {
   webVersion?: string;
@@ -274,7 +275,7 @@ export class WhatsappSessionWebJSCore extends WhatsappSession {
 
   protected async buildClient() {
     const clientOptions = this.getClientOptions();
-    const base = process.env.WAHA_LOCAL_STORE_BASE_DIR || './.sessions';
+    const base = getSessionStorePath();
     clientOptions.authStrategy = new LocalAuth({
       clientId: this.name,
       dataPath: `${base}/webjs/default`,

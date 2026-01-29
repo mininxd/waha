@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import { LocalStore } from './LocalStore';
 import { KNEX_SQLITE_CLIENT } from '@waha/core/env';
+import { getSessionStorePath } from '@waha/core/config/session-store';
 
 export class LocalStoreCore extends LocalStore {
   protected readonly baseDirectory: string;
@@ -16,24 +17,7 @@ export class LocalStoreCore extends LocalStore {
   constructor(engine: string) {
     super();
     this.engine = engine;
-    this.baseDirectory = this.resolveBaseDirectory();
-  }
-
-  private resolveBaseDirectory(): string {
-    const envDir = process.env.WAHA_LOCAL_STORE_BASE_DIR;
-    if (envDir) {
-      return envDir;
-    }
-    const dockerVol = '/app/.waha';
-    try {
-      if (fsSync.existsSync(dockerVol)) {
-        fsSync.accessSync(dockerVol, fsSync.constants.W_OK);
-        return dockerVol;
-      }
-    } catch (e) {
-      // Ignore
-    }
-    return './.sessions';
+    this.baseDirectory = getSessionStorePath();
   }
 
   async init(sessionName?: string) {
