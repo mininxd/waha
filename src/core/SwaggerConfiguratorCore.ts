@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import * as lodash from 'lodash';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
+import { apiReference } from '@scalar/nestjs-api-reference';
 import { BasicAuthFunction } from '@waha/core/auth/basicAuth';
 import { DashboardConfigServiceCore } from '@waha/core/config/DashboardConfigServiceCore';
 import { Logger } from 'nestjs-pino';
@@ -134,9 +135,16 @@ export class SwaggerConfiguratorCore {
       swaggerDocumentOptions,
     );
     document = this.configureWebhooks(document, webhooks);
-    SwaggerModule.setup('', app, document, {
-      customSiteTitle: this.title,
-    });
+
+    app.use(
+      '',
+      apiReference({
+        pageTitle: this.title,
+        spec: {
+          content: document,
+        },
+      }),
+    );
   }
 
   private configureWebhooks(document: OpenAPIObject, supportedWebhooks) {

@@ -49,7 +49,10 @@ import { Logger } from 'pino';
 import { AuthController } from '../api/auth.controller';
 import { CallsController } from '../api/calls.controller';
 import { ChatsController } from '../api/chats.controller';
-import { ChattingController } from '../api/chatting.controller';
+import { ChatActionsController } from '../api/routes/chat-actions.controller';
+import { DeprecatedController } from '../api/routes/deprecated.controller';
+import { InteractiveController } from '../api/routes/interactive.controller';
+import { SendMessagesController } from '../api/routes/send-messages.controller';
 import { ContactsController } from '../api/contacts.controller';
 import { EventsController } from '../api/events.controller';
 import { GroupsController } from '../api/groups.controller';
@@ -153,7 +156,10 @@ export const CONTROLLERS = [
   ApiKeysController,
   SessionsController,
   ProfileController,
-  ChattingController,
+  SendMessagesController,
+  InteractiveController,
+  ChatActionsController,
+  DeprecatedController,
   ChatsController,
   CallsController,
   ChannelsController,

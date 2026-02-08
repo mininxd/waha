@@ -51,6 +51,7 @@
     "@nestjs/swagger": "^7.1.11",
     "@nestjs/terminus": "^10.2.3",
     "@nestjs/websockets": "^11.0.0",
+    "@scalar/nestjs-api-reference": "^1.0.23",
     "@types/better-sqlite3": "^7.6.10",
     "@types/lodash": "^4.14.194",
     "@types/mustache": "^4.2.5",
